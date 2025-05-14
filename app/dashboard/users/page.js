@@ -63,7 +63,7 @@ export default function UsersPage() {
     try {
       const token = localStorage.getItem("token")
       const searchFilter = debouncedSearchTerm ? `search=${debouncedSearchTerm}` : ""
-      const response = await axios.get(`http://127.0.0.1:8000/api/users?${searchFilter}`, {
+      const response = await axios.get(`http://103.189.234.173:8000/api/users?${searchFilter}`, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
@@ -126,7 +126,7 @@ export default function UsersPage() {
     try {
       const res = await axios
         .post(
-          "http://127.0.0.1:8000/api/users",
+          "http://103.189.234.173:8000/api/users",
           {
             name: newUser.name,
             email: newUser.email,
@@ -188,7 +188,7 @@ export default function UsersPage() {
     try {
       const res = await axios
         .put(
-          `http://127.0.0.1:8000/api/users/${currentUser.id}`,
+          `http://103.189.234.173:8000/api/users/${currentUser.id}`,
           {
             name: currentUser.name,
             email: currentUser.email,
@@ -228,7 +228,7 @@ export default function UsersPage() {
       const token = localStorage.getItem("token")
       try {
         const res = await axios
-          .delete(`http://127.0.0.1:8000/api/users/${id}`, {
+          .delete(`http://103.189.234.173:8000/api/users/${id}`, {
             headers: {
               Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",

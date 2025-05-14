@@ -19,7 +19,7 @@ export default function Dashboard() {
 
     try {
       const token = localStorage.getItem("token")
-      const response = await axios.get("http://127.0.0.1:8000/api/dashboard", {
+      const response = await axios.get("http://103.189.234.173:8000/api/dashboard", {
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`,

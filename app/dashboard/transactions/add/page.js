@@ -114,7 +114,7 @@ export default function AddTransactionPage() {
     const token = localStorage.getItem("token")
     try {
       const response = axios.post(
-        `http://127.0.0.1:8000/api/transactions`,
+        `http://103.189.234.173:8000/api/transactions`,
         transactionData,
         {
           headers: {

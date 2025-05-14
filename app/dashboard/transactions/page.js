@@ -59,7 +59,7 @@ export default function TransactionsPage() {
       }
 
       const token = localStorage.getItem("token")
-      const response = await axios.get(`http://127.0.0.1:8000/api/transactions?${filterUrl}`, {
+      const response = await axios.get(`http://103.189.234.173:8000/api/transactions?${filterUrl}`, {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -118,7 +118,7 @@ export default function TransactionsPage() {
     const endDate = exportFilter.endDate || null
     const type = exportFilter.type || null
     const filterUrl = `start_date=${startDate}&end_date=${endDate}&type=${type}`
-    const response = await axios.get(`http://127.0.0.1:8000/api/transactions-export-pdf?${filterUrl}`, {
+    const response = await axios.get(`http://103.189.234.173:8000/api/transactions-export-pdf?${filterUrl}`, {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,

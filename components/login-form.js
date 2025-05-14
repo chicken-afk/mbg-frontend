@@ -20,7 +20,7 @@ export default function LoginForm() {
   const handleSubmit = async (e) => {
     setLoading(true)
     setError("")
-    const backendUrl = "http://127.0.0.1:8000/api/login";
+    const backendUrl = "http://103.189.234.173:8000/api/login";
     const data = {
       email: username,
       password: password,

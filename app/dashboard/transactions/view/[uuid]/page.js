@@ -26,7 +26,7 @@ export default function viewTransaction() {
     const fetchTransaction = async (uuid) => {
         setLoading(true)
         setError("")
-        const backendUrl = `http://127.0.0.1:8000/api/transactions/${uuid}`;
+        const backendUrl = `http://103.189.234.173:8000/api/transactions/${uuid}`;
         //get token from local storage
         const token = localStorage.getItem("token");
         const config = {
