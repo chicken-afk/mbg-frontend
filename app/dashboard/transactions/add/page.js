@@ -16,10 +16,9 @@ export default function AddTransactionPage() {
   const router = useRouter()
   const [formFields, setFormFields] = useState([])
   const [customFields, setCustomFields] = useState([])
-  const [newFieldName, setNewFieldName] = useState("")
-  const [newFieldType, setNewFieldType] = useState("text")
 
   const [formattedAmount, setFormattedAmount] = useState("")
+  const [submiting, setSubmitting] = useState(false)
 
   const formatRupiah = (value) => {
     const numberString = value.replace(/[^\d]/g, "")
@@ -36,50 +35,79 @@ export default function AddTransactionPage() {
     return formattedValue.replace(/[^\d]/g, "")
   }
 
+  const fetchCustomFields = async () => {
+    setSubmitting(true)
+    const token = localStorage.getItem("token")
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL
+      const response = await axios.get(`${apiUrl}/api/form-fields?status=1`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      })
+      const mappedFields = response.data.map((field) => ({
+        id: field.id,
+        name: field.name,
+        label: field.label,
+        type: field.type,
+        options: field.options ? field.options : [],
+        required: field.required,
+      }))
+      setCustomFields(mappedFields)
+      // setCustomFields(response.data)
+    } catch (error) {
+      // Handle error 401
+      if (error.response && error.response.status === 401) {
+        localStorage.removeItem("token")
+        localStorage.removeItem("isAuthenticated")
+        router.push("/?forceLogout=true")
+        return
+      }
+      console.error("Error fetching custom fields:", error)
+    }
+    setSubmitting(false)
+  }
 
 
   useEffect(() => {
     // Load form fields from localStorage
-    const storedFields = localStorage.getItem("transactionFormFields")
-    if (storedFields) {
-      setFormFields(JSON.parse(storedFields))
-    } else {
-      // Default fields if none exist
-      const defaultFields = [
-        { id: 1, name: "date", label: "Tanggal", type: "date", required: true },
-        { id: 2, name: "description", label: "Deskripsi", type: "text", required: true },
-        { id: 3, name: "Jumlah", label: "Jumlah (Rp.)", type: "number", required: true },
-        {
-          id: 4,
-          name: "category",
-          label: "Kategori",
-          type: "select",
-          options: ["Pemasukan", "Pengeluaran"],
-          required: true,
-        },
-        {
-          id: 5,
-          name: "status",
-          label: "Status",
-          type: "select",
-          options: ["Selesai"],
-          required: true,
-        },
-        {
-          id: 6,
-          name: "paymentMethod",
-          label: "Metode Pembayaran",
-          type: "select",
-          options: ["Cash", "Transfer Bank"],
-          required: true,
-        }
-      ]
-      setFormFields(defaultFields)
-      localStorage.setItem("transactionFormFields", JSON.stringify(defaultFields))
-    }
+    // Default fields if none exist
+    fetchCustomFields()
+    const defaultFields = [
+      { id: 1, name: "date", label: "Tanggal", type: "date", required: true },
+      { id: 2, name: "description", label: "Deskripsi", type: "text", required: true },
+      { id: 3, name: "Jumlah", label: "Jumlah (Rp.)", type: "number", required: true },
+      {
+        id: 4,
+        name: "category",
+        label: "Kategori",
+        type: "select",
+        options: ["Pemasukan", "Pengeluaran"],
+        required: true,
+      },
+      {
+        id: 5,
+        name: "status",
+        label: "Status",
+        type: "select",
+        options: ["Selesai"],
+        required: true,
+      },
+      {
+        id: 6,
+        name: "paymentMethod",
+        label: "Metode Pembayaran",
+        type: "select",
+        options: ["Cash", "Transfer Bank"],
+        required: true,
+      }
+    ]
+    setFormFields(defaultFields)
   }, [])
 
   const handleSubmit = async (e) => {
+    setSubmitting(true)
     e.preventDefault()
 
     // Get form data
@@ -104,17 +132,28 @@ export default function AddTransactionPage() {
     customFields.forEach((field) => {
       // const fieldName = field.name
       // transactionData.customFields[fieldName] = formData.get(`custom_${fieldName}`)
+      var selectedValue = ""
+      if (field.type === "select") {
+        //get selected value
+        selectedValue = formData.get(`custom_${field.name}`)
+        console.log("field name:", `custom_${field.name}`)
+        console.log("Selected value:", selectedValue)
+      } else {
+        selectedValue = formData.get(`custom_${field.name}`)
+      }
       transactionData.customFields.push({
         key: field.name,
         label: field.label,
-        value: formData.get(`custom_${field.name}`),
+        value: selectedValue,
       })
     })
+    console.log("Transaction data:", transactionData)
     //post data using axios
     const token = localStorage.getItem("token")
     try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL
       const response = axios.post(
-        `http://103.189.234.173:8000/api/transactions`,
+        `${apiUrl}/api/transactions`,
         transactionData,
         {
           headers: {
@@ -133,28 +172,9 @@ export default function AddTransactionPage() {
       }
       console.error("Error saving transaction:", error)
     }
-
+    setSubmitting(false)
     // Redirect back to transactions list
     router.push("/dashboard/transactions")
-  }
-
-  const addCustomField = () => {
-    if (newFieldName.trim() === "") return
-
-    const newField = {
-      id: Date.now(),
-      name: newFieldName.replace(/\s+/g, ""),
-      label: newFieldName,
-      type: newFieldType,
-    }
-
-    setCustomFields([...customFields, newField])
-    setNewFieldName("")
-    setNewFieldType("text")
-  }
-
-  const removeCustomField = (id) => {
-    setCustomFields(customFields.filter((field) => field.id !== id))
   }
 
   const renderField = (field) => {
@@ -203,15 +223,30 @@ export default function AddTransactionPage() {
   const renderCustomField = (field) => {
     switch (field.type) {
       case "text":
-        return <Input id={`custom_${field.name}`} name={`custom_${field.name}`} />
+        return <Input id={`custom_${field.name}`} name={`custom_${field.name}`} required={field.required} />
       case "number":
-        return <Input id={`custom_${field.name}`} name={`custom_${field.name}`} type="number" />
+        return <Input id={`custom_${field.name}`} name={`custom_${field.name}`} type="number" required={field.required} />
       case "date":
-        return <Input id={`custom_${field.name}`} name={`custom_${field.name}`} type="date" />
+        return <Input id={`custom_${field.name}`} name={`custom_${field.name}`} type="date" required={field.required} />
       case "textarea":
-        return <Textarea id={`custom_${field.name}`} name={`custom_${field.name}`} />
+        return <Textarea id={`custom_${field.name}`} name={`custom_${field.name}`} required={field.required} />
+      case "select":
+        return (
+          <Select name={`custom_${field.name}`} required={field.required}>
+            <SelectTrigger>
+              <SelectValue placeholder={`Pilih ${field.label}`} />
+            </SelectTrigger>
+            <SelectContent>
+              {field.options.map((option, i) => (
+                <SelectItem key={i} value={option}>
+                  {option}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )
       default:
-        return <Input id={`custom_${field.name}`} name={`custom_${field.name}`} />
+        return <Input id={`custom_${field.name}`} name={`custom_${field.name}`} required={field.required} />
     }
   }
 
@@ -251,10 +286,7 @@ export default function AddTransactionPage() {
                 {customFields.map((field) => (
                   <div key={field.id} className="grid gap-2 mb-4">
                     <div className="flex items-center justify-between">
-                      <Label htmlFor={`custom_${field.name}`}>{field.label}</Label>
-                      <Button type="button" variant="ghost" size="icon" onClick={() => removeCustomField(field.id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <Label htmlFor={`custom_${field.name}`}>{field.label} {field.required && " *"}</Label>
                     </div>
                     {renderCustomField(field)}
                   </div>
@@ -262,47 +294,21 @@ export default function AddTransactionPage() {
               </div>
             )}
 
-            {/* Add Custom Field */}
-            <div className="border-t pt-4 mt-6">
-              <h3 className="text-lg font-medium mb-4">Tambah Field Kustom</h3>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <div className="grid gap-2 flex-1">
-                  <Label htmlFor="newFieldName">Nama Field</Label>
-                  <Input
-                    id="newFieldName"
-                    value={newFieldName}
-                    onChange={(e) => setNewFieldName(e.target.value)}
-                    placeholder="Contoh: Nomor Invoice"
-                  />
-                </div>
-                <div className="grid gap-2 w-full sm:w-[180px]">
-                  <Label htmlFor="newFieldType">Tipe Field</Label>
-                  <Select value={newFieldType} onValueChange={setNewFieldType}>
-                    <SelectTrigger id="newFieldType">
-                      <SelectValue placeholder="Pilih tipe" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="text">Text</SelectItem>
-                      <SelectItem value="number">Number</SelectItem>
-                      <SelectItem value="date">Date</SelectItem>
-                      <SelectItem value="textarea">Textarea</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid gap-2 items-end">
-                  <Button type="button" onClick={addCustomField}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Tambah Field
-                  </Button>
-                </div>
-              </div>
-            </div>
           </CardContent>
           <CardFooter className="flex justify-between">
             <Link href="/dashboard/transactions">
               <Button variant="outline">Batal</Button>
             </Link>
-            <Button type="submit">Simpan Transaksi</Button>
+            {submiting ? (
+              <Button variant="outline" disabled>
+                <Plus className="animate-pulse" />
+              </Button>
+            ) : (
+              <Button type="submit">
+                <Plus className="h-4 w-4 mr-2" />
+                Tambah Transaksi
+              </Button>
+            )}
           </CardFooter>
         </form>
       </Card>

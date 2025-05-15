@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ArrowLeft, ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react"
 import Link from "next/link"
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd"
+import axios from "axios"
 
 // Mock implementation of react-beautiful-dnd for simplicity
 // In a real app, you would install and use the actual library
@@ -37,20 +38,52 @@ export default function FormBuilderPage() {
     options: [],
   })
   const [newOption, setNewOption] = useState("")
+  const [message, setMessage] = useState(null)
+  const [error, setError] = useState(null)
+  const [submitting, setSubmitting] = useState(false)
+
+  const fetchData = async () => {
+    const token = localStorage.getItem("token")
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL
+    const response = await axios.get(`${apiUrl}/api/form-fields`, {
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+      },
+    })
+    if (response.status === 200 && response.data && response.data.length > 0) {
+      //Mapping the response data to match the expected format
+      const mappedFields = response.data.map((field) => ({
+        id: field.id,
+        name: field.name,
+        label: field.label,
+        type: field.type,
+        required: field.required,
+        options: field.options || [],
+      }))
+      setFields(mappedFields)
+    }
+  };
 
   useEffect(() => {
+    fetchData()
     // Load existing form fields
-    const storedFields = localStorage.getItem("transactionFormFields")
-    if (storedFields) {
-      setFields(JSON.parse(storedFields))
-    }
+    // const storedFields = localStorage.getItem("transactionFormFields")
+    // if (storedFields) {
+    //   setFields(JSON.parse(storedFields))
+    // }
   }, [])
 
-  const handleAddField = () => {
-    if (newField.name.trim() === "" || newField.label.trim() === "") {
-      alert("Nama dan label field harus diisi")
+  const handleAddField = async () => {
+    setError(null)
+    setMessage(null)
+    if (newField.label.trim() === "") {
+      alert("Nama field harus diisi")
+      setError("Nama field harus diisi")
       return
     }
+    setSubmitting(true)
+    newField.name = newField.label
 
     // Create a new field with a unique ID
     const fieldToAdd = {
@@ -58,13 +91,31 @@ export default function FormBuilderPage() {
       id: Date.now(),
       name: newField.name.replace(/\s+/g, "").toLowerCase(),
     }
+    console.log("Field to add:", fieldToAdd)
+    // return
+    //Post the new field to the server
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL
+    const token = localStorage.getItem("token")
 
-    // Add the new field to the list
-    const updatedFields = [...fields, fieldToAdd]
-    setFields(updatedFields)
-
-    // Save to localStorage
-    localStorage.setItem("transactionFormFields", JSON.stringify(updatedFields))
+    try {
+      const response = await axios.post(`${apiUrl}/api/form-fields`, fieldToAdd, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      console.log("Field added successfully:", response.data)
+      // Update the local state with the new field
+      fetchData()
+      setMessage("Field added successfully")
+      // const updatedFields = [...fields, fieldToAdd]
+    } catch (error) {
+      console.error("Error adding field:", error)
+      alert("Gagal menambahkan field")
+      setError("Gagal menambahkan field")
+      setSubmitting(false)
+      return
+    }
 
     // Reset the form
     setNewField({
@@ -74,13 +125,26 @@ export default function FormBuilderPage() {
       required: false,
       options: [],
     })
+    setSubmitting(false)
   }
 
-  const handleRemoveField = (id) => {
+  const handleRemoveField = async (id) => {
     if (confirm("Apakah Anda yakin ingin menghapus field ini?")) {
-      const updatedFields = fields.filter((field) => field.id !== id)
-      setFields(updatedFields)
-      localStorage.setItem("transactionFormFields", JSON.stringify(updatedFields))
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL
+      const token = localStorage.getItem("token")
+      try {
+        const response = await axios.delete(`${apiUrl}/api/form-fields/${id}`, {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        })
+        console.log("Field deleted successfully:", response.data)
+        fetchData()
+      } catch (error) {
+        console.error("Error deleting field:", error)
+        alert("Gagal menghapus field")
+      }
     }
   }
 
@@ -147,18 +211,10 @@ export default function FormBuilderPage() {
           <CardHeader>
             <CardTitle>Tambah Field Baru</CardTitle>
             <CardDescription>Buat field baru untuk form transaksi</CardDescription>
+            {message && <p className="text-sm text-green-500">{message}</p>}
+            {error && <p className="text-sm text-red-500">{error}</p>}
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid gap-2">
-              <Label htmlFor="fieldName">Nama Field</Label>
-              <Input
-                id="fieldName"
-                value={newField.name}
-                onChange={(e) => setNewField({ ...newField, name: e.target.value })}
-                placeholder="Contoh: invoiceNumber"
-              />
-              <p className="text-xs text-muted-foreground">Nama field untuk digunakan dalam sistem (tanpa spasi)</p>
-            </div>
 
             <div className="grid gap-2">
               <Label htmlFor="fieldLabel">Label Field</Label>
@@ -227,16 +283,22 @@ export default function FormBuilderPage() {
             )}
           </CardContent>
           <CardFooter>
-            <Button onClick={handleAddField} className="w-full">
-              <Plus className="mr-2 h-4 w-4" />
-              Tambah Field
-            </Button>
+            {submitting ? (
+              <Button disabled className="w-full">
+                <span className="animate-pulse">Loading...</span>
+              </Button>
+            ) : (
+              <Button onClick={handleAddField} className="w-full">
+                <Plus className="mr-2 h-4 w-4" />
+                Tambah Field
+              </Button>
+            )}
           </CardFooter>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Field yang Ada</CardTitle>
+            <CardTitle>Field Dinamis yang Ada</CardTitle>
             <CardDescription>Kelola field yang ada dalam form transaksi</CardDescription>
           </CardHeader>
           <CardContent>
@@ -262,22 +324,6 @@ export default function FormBuilderPage() {
                                   </p>
                                 </div>
                                 <div className="flex gap-1">
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => handleMoveField(field.id, "up")}
-                                    disabled={index === 0}
-                                  >
-                                    <ArrowUp className="h-4 w-4" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => handleMoveField(field.id, "down")}
-                                    disabled={index === fields.length - 1}
-                                  >
-                                    <ArrowDown className="h-4 w-4" />
-                                  </Button>
                                   <Button variant="ghost" size="icon" onClick={() => handleRemoveField(field.id)}>
                                     <Trash2 className="h-4 w-4" />
                                   </Button>

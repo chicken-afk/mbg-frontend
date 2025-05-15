@@ -21,11 +21,11 @@ const menuItems = [
   //   href: "/dashboard/reports",
   //   icon: BarChart,
   // },
-  // {
-  //   title: "Buat Form Baru",
-  //   href: "/dashboard/form-builder",
-  //   icon: PlusCircle,
-  // },
+  {
+    title: "Buat Form Baru",
+    href: "/dashboard/form-builder",
+    icon: PlusCircle,
+  },
   {
     title: "Manajemen User",
     href: "/dashboard/users",

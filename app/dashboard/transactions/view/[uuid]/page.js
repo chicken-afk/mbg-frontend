@@ -26,7 +26,8 @@ export default function viewTransaction() {
     const fetchTransaction = async (uuid) => {
         setLoading(true)
         setError("")
-        const backendUrl = `http://103.189.234.173:8000/api/transactions/${uuid}`;
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL
+        const backendUrl = `${apiUrl}/api/transactions/${uuid}`;
         //get token from local storage
         const token = localStorage.getItem("token");
         const config = {

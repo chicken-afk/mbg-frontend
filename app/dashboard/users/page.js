@@ -63,7 +63,8 @@ export default function UsersPage() {
     try {
       const token = localStorage.getItem("token")
       const searchFilter = debouncedSearchTerm ? `search=${debouncedSearchTerm}` : ""
-      const response = await axios.get(`http://103.189.234.173:8000/api/users?${searchFilter}`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL
+      const response = await axios.get(`${apiUrl}/api/users?${searchFilter}`, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
@@ -123,10 +124,11 @@ export default function UsersPage() {
 
     //axios post request to add new user
     const token = localStorage.getItem("token")
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL
     try {
       const res = await axios
         .post(
-          "http://103.189.234.173:8000/api/users",
+          `${apiUrl}/api/users`,
           {
             name: newUser.name,
             email: newUser.email,
@@ -185,10 +187,11 @@ export default function UsersPage() {
     // localStorage.setItem("users", JSON.stringify(updatedUsers))
     console.log("Updated user data:", currentUser)
     const token = localStorage.getItem("token")
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL
     try {
       const res = await axios
         .put(
-          `http://103.189.234.173:8000/api/users/${currentUser.id}`,
+          `${apiUrl}/api/users/${currentUser.id}`,
           {
             name: currentUser.name,
             email: currentUser.email,
@@ -226,9 +229,10 @@ export default function UsersPage() {
   const handleDeleteUser = async (id) => {
     if (confirm("Apakah Anda yakin ingin menghapus pengguna ini?")) {
       const token = localStorage.getItem("token")
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL
       try {
         const res = await axios
-          .delete(`http://103.189.234.173:8000/api/users/${id}`, {
+          .delete(`${apiUrl}/api/users/${id}`, {
             headers: {
               Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",

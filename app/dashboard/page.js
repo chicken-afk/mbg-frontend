@@ -5,6 +5,7 @@ import { DollarSign, Users, FileText, TrendingUp } from "lucide-react"
 import { useEffect, useState } from "react"
 import axios from "axios"
 import { format } from "date-fns"
+import process from "process"
 
 
 export default function Dashboard() {
@@ -19,7 +20,8 @@ export default function Dashboard() {
 
     try {
       const token = localStorage.getItem("token")
-      const response = await axios.get("http://103.189.234.173:8000/api/dashboard", {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL
+      const response = await axios.get(`${apiUrl}/api/dashboard`, {
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`,
