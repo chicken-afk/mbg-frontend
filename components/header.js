@@ -45,7 +45,7 @@ export default function Header() {
         <h1 className="text-lg font-semibold md:text-xl">Admin Panel</h1>
       </div>
       <div className="flex items-center gap-2">
-        {user && <span className="hidden text-sm md:inline-block">Halo, {user.username}</span>}
+        {user && <span className="hidden text-sm md:inline-block">Halo, {user.name}</span>}
         <Button variant="outline" size="icon" onClick={handleLogout}>
           <LogOut className="h-5 w-5" />
           <span className="sr-only">Logout</span>

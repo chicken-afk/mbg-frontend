@@ -40,6 +40,10 @@ export default function LoginForm() {
         var token = resData.data.token;
         localStorage.setItem("token", token);
         localStorage.setItem("isAuthenticated", "true");
+        localStorage.setItem("user", JSON.stringify(resData.data.user));
+        localStorage.setItem("userRole", resData.data.user.role);
+        localStorage.setItem("userName", resData.data.user.name);
+        localStorage.setItem("userEmail", resData.data.user.email);
         router.push("/dashboard");
       } else {
         setError("Internal Server Error");
