@@ -31,8 +31,8 @@ export default function TransactionsPage() {
 
   const [showModalExport, setShowModalExport] = useState(false)
   const [exportFilter, setExportFilter] = useState({
-    startDate: null,
-    endDate: null,
+    startDate: format(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), "yyyy-MM-dd"),
+    endDate: format(new Date(), "yyyy-MM-dd"),
     type: "all",
   })
 
@@ -113,30 +113,67 @@ export default function TransactionsPage() {
     }
   }
 
+  // const exportPdf = async () => {
+  //   const apiUrl = process.env.NEXT_PUBLIC_API_URL
+  //   const token = localStorage.getItem("token")
+  //   const startDate = exportFilter.startDate || null
+  //   const endDate = exportFilter.endDate || null
+  //   const type = exportFilter.type || null
+  //   const filterUrl = `start_date=${startDate}&end_date=${endDate}&type=${type}`
+  //   window.location.href = `${apiUrl}/api/transactions-export-pdf?${filterUrl}`
+  //   console.log("Export PDF filter URL:", filterUrl)
+  //   const response = await axios.get(`${apiUrl}/api/transactions-export-pdf?${filterUrl}`, {
+  //     headers: {
+  //       "Content-Type": "application/json",
+  //       Authorization: `Bearer ${token}`,
+  //     },
+  //   })
+  //   console.log("Export PDF data:", response.data)
+  //   const blob = new Blob([response.data], { type: "application/pdf" })
+  //   const url = window.URL.createObjectURL(blob)
+  //   const a = document.createElement("a")
+  //   a.href = url
+  //   a.download = "transactions.pdf"
+  //   document.body.appendChild(a)
+  //   a.click()
+  //   a.remove()
+  //   window.URL.revokeObjectURL(url)
+  // }
   const exportPdf = async () => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL
-    const token = localStorage.getItem("token")
-    const startDate = exportFilter.startDate || null
-    const endDate = exportFilter.endDate || null
-    const type = exportFilter.type || null
-    const filterUrl = `start_date=${startDate}&end_date=${endDate}&type=${type}`
-    const response = await axios.get(`${apiUrl}/api/transactions-export-pdf?${filterUrl}`, {
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    })
-    console.log("Export PDF data:", response.data)
-    const blob = new Blob([response.data], { type: "application/pdf" })
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = "transactions.pdf"
-    document.body.appendChild(a)
-    a.click()
-    a.remove()
-    window.URL.revokeObjectURL(url)
-  }
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+    const token = localStorage.getItem("token");
+    const startDate = exportFilter.startDate || "";
+    const endDate = exportFilter.endDate || "";
+    const type = exportFilter.type || "";
+    const filterUrl = `start_date=${startDate}&end_date=${endDate}&type=${type}`;
+
+    try {
+      const response = await axios.get(`${apiUrl}/api/transactions-export-pdf?${filterUrl}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        responseType: "blob", // 👈 very important
+      });
+
+      const blob = new Blob([response.data], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "transactions.pdf";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      //open in new tab
+      window.open(url, "_blank");
+      // Clean up
+      // window.URL.revokeObjectURL(url);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Failed to export PDF:", error);
+    }
+  };
+
 
   return (
     <div className="space-y-6">
@@ -222,7 +259,7 @@ export default function TransactionsPage() {
                     <Input
                       type="date"
                       className="w-full"
-                      onChange={(e) => setExportFilter({ ...exportFilter, startDate: e.target.value })}
+                      onChange={(e) => setExportFilter({ ...exportFilter, startDate: format(e.target.value, 'yyyy-MM-dd') })}
                       value={exportFilter.startDate}
                     />
                   </div>
@@ -231,7 +268,7 @@ export default function TransactionsPage() {
                     <Input
                       type="date"
                       className="w-full"
-                      onChange={(e) => setExportFilter({ ...exportFilter, endDate: e.target.value })}
+                      onChange={(e) => setExportFilter({ ...exportFilter, endDate: format(e.target.value, 'yyyy-MM-dd') })}
                       value={exportFilter.endDate}
                     />
                   </div>

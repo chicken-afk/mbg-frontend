@@ -56,7 +56,8 @@ export default function Dashboard() {
         <p className="text-muted-foreground">Ringkasan aktivitas dan transaksi keuangan</p>
       </div>
 
-      <div className="flex gap-3 md:grid-cols-3 lg:grid-cols-4 justify-center">
+      {/* Responsive cards: stack on mobile, row on desktop */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:gap-2 md:grid-cols-1 lg:grid-cols-4 justify-center">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Sisa Saldo</CardTitle>
@@ -93,7 +94,8 @@ export default function Dashboard() {
       <div>
         <p className="text-muted-foreground mb-0">Pengeluaran Berdasarkan Pengguna</p>
       </div>
-      <div className="grid gap-2 md:grid-cols-1 lg:grid-cols-5 mt-0">
+      {/* Responsive user cards: grid with 1 column on mobile, 2 on sm, 3 on md, 5 on lg */}
+      <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 mt-0">
         {
           dashboard &&
           dashboard.data.total_spent_by_user.map((user) => (
@@ -111,8 +113,9 @@ export default function Dashboard() {
         }
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="col-span-4">
+      {/* Responsive: stack on mobile, grid on md+ */}
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
+        <Card className="col-span-1 md:col-span-2 lg:col-span-4">
           <CardHeader>
             <CardTitle>Transaksi Terbaru</CardTitle>
             <CardDescription>5 transaksi terakhir yang tercatat dalam sistem</CardDescription>
@@ -138,43 +141,6 @@ export default function Dashboard() {
             </div>
           </CardContent>
         </Card>
-
-        {/* <Card className="col-span-3">
-          <CardHeader>
-            <CardTitle>Aktivitas Terbaru</CardTitle>
-            <CardDescription>Aktivitas pengguna dalam sistem</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <div key={i} className="flex items-start gap-4">
-                  <div className="rounded-full bg-muted p-2">
-                    <Users className="h-4 w-4" />
-                  </div>
-                  <div className="flex-1 space-y-1">
-                    <p className="text-sm font-medium leading-none">
-                      {["Admin", "Budi", "Siti", "Joko", "Dewi"][i - 1]}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {
-                        [
-                          "Menambahkan transaksi baru",
-                          "Mengubah data pengguna",
-                          "Membuat form baru",
-                          "Login ke sistem",
-                          "Menghapus transaksi",
-                        ][i - 1]
-                      }
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(Date.now() - i * 3600000).toLocaleString()}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card> */}
       </div>
     </div>
   )
