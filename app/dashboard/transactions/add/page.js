@@ -174,7 +174,7 @@ export default function AddTransactionPage() {
     }
     setSubmitting(false)
     // Redirect back to transactions list
-    router.push("/dashboard/transactions")
+    router.push("/dashboard/transactions?from=form")
   }
 
   const renderField = (field) => {

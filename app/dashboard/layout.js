@@ -41,8 +41,8 @@ export default function DashboardLayout({ children }) {
       <Header onSidebarOpen={openSidebar} />
       <div className="flex flex-1">
         <Sidebar sidebarOpen={isSidebarOpen} onClose={closeSidebar} />
-        <main className={`flex-1 p-6 overflow-auto ${isMobileDevice ? "" : "pl-64"} bg-muted/40`}>
-          <div className="pl-6">{children}</div>
+        <main className={`flex-1 overflow-auto ${isMobileDevice ? "p-2" : "p-6 pl-72"} bg-muted/40`}>
+          <div className="">{children}</div>
         </main>
       </div>
     </div>

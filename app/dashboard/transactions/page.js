@@ -15,8 +15,11 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils"
 import { CalendarIcon } from "lucide-react"
 import { format } from "date-fns"
+import { useSearchParams, useRouter } from "next/navigation"
 
 export default function TransactionsPage() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const [transactions, setTransactions] = useState([])
   const [searchTerm, setSearchTerm] = useState("")
   const [filterCategory, setFilterCategory] = useState("all")
@@ -35,6 +38,8 @@ export default function TransactionsPage() {
     endDate: format(new Date(), "yyyy-MM-dd"),
     type: "all",
   })
+
+  const from = searchParams.get('from') || null
 
   const fetchData = async () => {
     setLoading(true)
@@ -103,7 +108,8 @@ export default function TransactionsPage() {
 
     fetchData()
     // setLoading(false)
-  }, [filterCategory, debouncedSearchTerm, filterDate, pagination.currentPage])
+  }, [filterCategory, debouncedSearchTerm, filterDate, pagination.currentPage, from])
+
 
   const handleDelete = (id) => {
     if (confirm("Apakah Anda yakin ingin menghapus transaksi ini?")) {

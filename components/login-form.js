@@ -65,8 +65,8 @@ export default function LoginForm() {
       } else {
         console.error("Request failed:", error.message);
       }
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   return (
