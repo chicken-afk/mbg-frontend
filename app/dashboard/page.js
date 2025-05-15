@@ -113,6 +113,28 @@ export default function Dashboard() {
         }
       </div>
 
+      <div>
+        <p className="text-muted-foreground mb-0">Pemasukan Berdasarkan Pengguna</p>
+      </div>
+      {/* Responsive user cards: grid with 1 column on mobile, 2 on sm, 3 on md, 5 on lg */}
+      <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 mt-0">
+        {
+          dashboard &&
+          dashboard.data.total_income_by_user.map((user) => (
+            <Card key={user.user_id}>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 pt-2">
+                <CardTitle className="text-sm font-medium">{user.name}</CardTitle>
+                {/* <Users className="h-4 w-4 text-muted-foreground" /> */}
+              </CardHeader>
+              <CardContent className="pb-2">
+                <div className="text-xl font-bold text-green-400">{`Rp. ${formatRupiah(user.total_income)}`}</div>
+                <p className="text-xs text-muted-foreground">-</p>
+              </CardContent>
+            </Card>
+          ))
+        }
+      </div>
+
       {/* Responsive: stack on mobile, grid on md+ */}
       <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
         <Card className="col-span-1 md:col-span-2 lg:col-span-4">

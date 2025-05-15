@@ -16,6 +16,10 @@ import { cn } from "@/lib/utils"
 import { CalendarIcon } from "lucide-react"
 import { format } from "date-fns"
 import { useSearchParams, useRouter } from "next/navigation"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Toast } from "@radix-ui/react-toast"
+import { Dialog } from "@radix-ui/react-dialog"
+import ConfirmDialog from "@/components/ui/confirmdialog"
 
 export default function TransactionsPage() {
   const router = useRouter()
@@ -31,6 +35,9 @@ export default function TransactionsPage() {
     itemsPerPage: 10,
   })
   const [loading, setLoading] = useState(true)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [selectedDeleteId, setSelectedDeleteId] = useState(null)
+  console.log("Delete dialog open:", deleteDialogOpen)
 
   const [showModalExport, setShowModalExport] = useState(false)
   const [exportFilter, setExportFilter] = useState({
@@ -39,7 +46,11 @@ export default function TransactionsPage() {
     type: "all",
   })
 
+  const [isExporting, setIsExporting] = useState(false)
+
   const from = searchParams.get('from') || null
+
+  const userRole = localStorage.getItem("userRole")
 
   const fetchData = async () => {
     setLoading(true)
@@ -111,41 +122,47 @@ export default function TransactionsPage() {
   }, [filterCategory, debouncedSearchTerm, filterDate, pagination.currentPage, from])
 
 
-  const handleDelete = (id) => {
-    if (confirm("Apakah Anda yakin ingin menghapus transaksi ini?")) {
-      const updatedTransactions = transactions.filter((t) => t.id !== id)
-      setTransactions(updatedTransactions)
-      localStorage.setItem("transactions", JSON.stringify(updatedTransactions))
+  const handleDelete = async () => {
+    // setLoading(true)
+    const id = selectedDeleteId
+    const token = localStorage.getItem("token")
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL
+    try {
+      const response = await axios.delete(`${apiUrl}/api/transactions/${id}`, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      console.log("Delete response:", response.data)
+      if (response.status === 200) {
+        console.log("Transaction deleted successfully")
+        toast.success("Transaksi berhasil dihapus")
+        setDeleteDialogOpen(false)
+        fetchData()
+      } else {
+        toast.error("Gagal menghapus transaksi")
+      }
     }
+    catch (error) {
+      console.error("Failed to delete transaction", error)
+      setDeleteDialogOpen(false)
+      if (error.response) {
+        if (error.response.status === 401) {
+          confirm("Session expired, please login again")
+          window.location.href = "/"
+        }
+      } else {
+        console.error("Request failed:", error.message)
+        toast.error("Gagal menghapus transaksi")
+      }
+    }
+    setDeleteDialogOpen(false)
+    setLoading(false)
   }
 
-  // const exportPdf = async () => {
-  //   const apiUrl = process.env.NEXT_PUBLIC_API_URL
-  //   const token = localStorage.getItem("token")
-  //   const startDate = exportFilter.startDate || null
-  //   const endDate = exportFilter.endDate || null
-  //   const type = exportFilter.type || null
-  //   const filterUrl = `start_date=${startDate}&end_date=${endDate}&type=${type}`
-  //   window.location.href = `${apiUrl}/api/transactions-export-pdf?${filterUrl}`
-  //   console.log("Export PDF filter URL:", filterUrl)
-  //   const response = await axios.get(`${apiUrl}/api/transactions-export-pdf?${filterUrl}`, {
-  //     headers: {
-  //       "Content-Type": "application/json",
-  //       Authorization: `Bearer ${token}`,
-  //     },
-  //   })
-  //   console.log("Export PDF data:", response.data)
-  //   const blob = new Blob([response.data], { type: "application/pdf" })
-  //   const url = window.URL.createObjectURL(blob)
-  //   const a = document.createElement("a")
-  //   a.href = url
-  //   a.download = "transactions.pdf"
-  //   document.body.appendChild(a)
-  //   a.click()
-  //   a.remove()
-  //   window.URL.revokeObjectURL(url)
-  // }
   const exportPdf = async () => {
+    setIsExporting(true)
     const apiUrl = process.env.NEXT_PUBLIC_API_URL;
     const token = localStorage.getItem("token");
     const startDate = exportFilter.startDate || "";
@@ -175,9 +192,12 @@ export default function TransactionsPage() {
       // Clean up
       // window.URL.revokeObjectURL(url);
       window.URL.revokeObjectURL(url);
+      setIsExporting(false);
     } catch (error) {
       console.error("Failed to export PDF:", error);
     }
+    setIsExporting(false)
+    // setShowModalExport(false)
   };
 
 
@@ -300,9 +320,17 @@ export default function TransactionsPage() {
                     <Button variant="outline" onClick={() => setShowModalExport(false)} className="mt-4">
                       Tutup
                     </Button>
-                    <Button variant={"outline"} className="mt-4 ml-2 text-white bg-primary" onClick={exportPdf}>
-                      Ekspor
-                    </Button>
+                    {
+                      isExporting ? (
+                        <Button variant="outline" className="mt-4 ml-2 text-white bg-primary animate-pulse" disabled>
+                          Exporting...
+                        </Button>
+                      ) : (
+                        <Button variant="outline" className="mt-4 ml-2 text-white bg-primary" onClick={exportPdf}>
+                          Export PDF
+                        </Button>
+                      )
+                    }
                   </div>
                 </div>
               </div>
@@ -375,6 +403,31 @@ export default function TransactionsPage() {
                                   <span className="sr-only">View</span>
                                 </Button>
                               </Link>
+                              {
+                                (userRole === "1" || userRole === 1) && (
+                                  <>
+                                    <Button variant="ghost" size="icon" onClick={() => {
+                                      setSelectedDeleteId(transaction.id);
+                                      setDeleteDialogOpen(true);
+                                    }}>
+                                      <Trash2 className="h-4 w-4" />
+                                      <span className="sr-only">Delete</span>
+                                    </Button>
+                                    <ConfirmDialog
+                                      open={deleteDialogOpen}
+                                      onOpenChange={setDeleteDialogOpen}
+                                      title="Delete Item?"
+                                      description="Are you sure you want to delete this item? This action is irreversible."
+                                      onConfirm={() => handleDelete()}
+                                      onCancel={() => setDeleteDialogOpen(false)}
+                                      confirmText="Delete"
+                                      cancelText="Cancel"
+                                      confirmButtonClassName="bg-red-500 text-white hover:bg-red-600"
+                                      cancelButtonClassName="bg-gray-200 text-gray-800 hover:bg-gray-300"
+                                    />
+                                  </>
+                                )
+                              }
                               {/* <Link href={`/dashboard/transactions/edit/${transaction.id}`}>
                                 <Button variant="ghost" size="icon">
                                   <Edit className="h-4 w-4" />

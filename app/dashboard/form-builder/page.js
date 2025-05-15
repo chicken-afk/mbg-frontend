@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ArrowLeft, ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react"
+import { ArrowLeft, ArrowDown, ArrowUp, Plus, Trash2, Edit2, Edit2Icon } from "lucide-react"
 import Link from "next/link"
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd"
 import axios from "axios"
@@ -31,6 +31,7 @@ export default function FormBuilderPage() {
   const router = useRouter()
   const [fields, setFields] = useState([])
   const [newField, setNewField] = useState({
+    id: null,
     name: "",
     label: "",
     type: "text",
@@ -41,8 +42,11 @@ export default function FormBuilderPage() {
   const [message, setMessage] = useState(null)
   const [error, setError] = useState(null)
   const [submitting, setSubmitting] = useState(false)
+  const [isAdd, setIsAdd] = useState(true)
+  const [isLoading, setIsLoading] = useState(true)
 
   const fetchData = async () => {
+    setIsLoading(true)
     const token = localStorage.getItem("token")
     const apiUrl = process.env.NEXT_PUBLIC_API_URL
     const response = await axios.get(`${apiUrl}/api/form-fields`, {
@@ -63,7 +67,25 @@ export default function FormBuilderPage() {
       }))
       setFields(mappedFields)
     }
+    setIsLoading(false)
   };
+
+  const handleEditField = (field) => {
+    setIsAdd(false)
+    setNewField({
+      id: field.id,
+      name: field.name,
+      label: field.label,
+      type: field.type,
+      required: field.required,
+      options: field.options || [],
+    })
+    setNewOption("")
+    setFields(fields.filter((f) => f.id !== field.id))
+    setMessage(null)
+    setError(null)
+    setSubmitting(false)
+  }
 
   useEffect(() => {
     fetchData()
@@ -88,7 +110,7 @@ export default function FormBuilderPage() {
     // Create a new field with a unique ID
     const fieldToAdd = {
       ...newField,
-      id: Date.now(),
+      id: newField.id ?? null,
       name: newField.name.replace(/\s+/g, "").toLowerCase(),
     }
     console.log("Field to add:", fieldToAdd)
@@ -108,6 +130,7 @@ export default function FormBuilderPage() {
       // Update the local state with the new field
       fetchData()
       setMessage("Field added successfully")
+      setIsAdd(true)
       // const updatedFields = [...fields, fieldToAdd]
     } catch (error) {
       console.error("Error adding field:", error)
@@ -168,6 +191,23 @@ export default function FormBuilderPage() {
       options: updatedOptions,
     })
   }
+  const handleBackButton = () => {
+    fetchData()
+    setIsAdd(true)
+    setNewField({
+      id: null,
+      name: "",
+      label: "",
+      type: "text",
+      required: false,
+      options: [],
+    })
+    setNewOption("")
+    setMessage(null)
+    setError(null)
+    setSubmitting(false)
+    setFields(fields.filter((f) => f.id !== newField.id))
+  }
 
   const handleMoveField = (id, direction) => {
     const index = fields.findIndex((field) => field.id === id)
@@ -209,8 +249,24 @@ export default function FormBuilderPage() {
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Tambah Field Baru</CardTitle>
-            <CardDescription>Buat field baru untuk form transaksi</CardDescription>
+            {
+              isAdd ? (
+                <>
+                  <CardTitle>Tambah Field Baru</CardTitle>
+                  <CardDescription>Buat field baru untuk form transaksi</CardDescription>
+                </>
+              ) : (
+                <>
+                  <CardTitle>
+                    <Button variant="ghost" size="icon" onClick={handleBackButton}>
+                      <ArrowLeft className="h-4 w-4 mr-2 mb-2" />
+                    </Button>
+                    Edit Field
+                  </CardTitle>
+                  <CardDescription>Edit field untuk form transaksi</CardDescription>
+                </>
+              )
+            }
             {message && <p className="text-sm text-green-500">{message}</p>}
             {error && <p className="text-sm text-red-500">{error}</p>}
           </CardHeader>
@@ -289,8 +345,13 @@ export default function FormBuilderPage() {
               </Button>
             ) : (
               <Button onClick={handleAddField} className="w-full">
-                <Plus className="mr-2 h-4 w-4" />
-                Tambah Field
+                {isAdd ? <>
+                  <Plus className="mr-2 h-4 w-4" />
+                </> : <>
+                  <Edit2 className="mr-2 h-4 w-4" />
+                </>
+                }
+                {isAdd ? "Simpan" : "Simpan Perubahan"}
               </Button>
             )}
           </CardFooter>
@@ -306,7 +367,7 @@ export default function FormBuilderPage() {
               <Droppable droppableId="fields">
                 {(provided) => (
                   <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-4">
-                    {fields.length > 0 ? (
+                    {fields.length > 0 && !isLoading ? (
                       fields.map((field, index) => (
                         <Draggable key={field.id} draggableId={field.id.toString()} index={index}>
                           {(provided) => (
@@ -324,6 +385,9 @@ export default function FormBuilderPage() {
                                   </p>
                                 </div>
                                 <div className="flex gap-1">
+                                  <Button type="button" variant="ghost" size="icon" onClick={() => handleEditField(field)}>
+                                    <Edit2Icon className="h-4 w-4" />
+                                  </Button>
                                   <Button variant="ghost" size="icon" onClick={() => handleRemoveField(field.id)}>
                                     <Trash2 className="h-4 w-4" />
                                   </Button>
@@ -347,7 +411,11 @@ export default function FormBuilderPage() {
                         </Draggable>
                       ))
                     ) : (
-                      <div className="text-center py-8 text-muted-foreground">Belum ada field yang ditambahkan</div>
+                      isLoading ? (
+                        <div className="text-center py-8 text-muted-foreground animate-pulse">Loading...</div>
+                      ) : (
+                        <div className="text-center py-8 text-muted-foreground">Tidak ada field yang ditemukan</div>
+                      )
                     )}
                     {provided.placeholder}
                   </div>
