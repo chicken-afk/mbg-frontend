@@ -17,7 +17,7 @@ import { CalendarIcon } from "lucide-react"
 import { format } from "date-fns"
 import { useSearchParams, useRouter } from "next/navigation"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Toast } from "@radix-ui/react-toast"
+import { toast } from "@radix-ui/react-toast"
 import { Dialog } from "@radix-ui/react-dialog"
 import ConfirmDialog from "@/components/ui/confirmdialog"
 
@@ -137,11 +137,11 @@ export default function TransactionsPage() {
       console.log("Delete response:", response.data)
       if (response.status === 200) {
         console.log("Transaction deleted successfully")
-        toast.success("Transaksi berhasil dihapus")
+        setSelectedDeleteId(null)
         setDeleteDialogOpen(false)
         fetchData()
       } else {
-        toast.error("Gagal menghapus transaksi")
+        // toast.error("Gagal menghapus transaksi")
       }
     }
     catch (error) {
@@ -154,11 +154,12 @@ export default function TransactionsPage() {
         }
       } else {
         console.error("Request failed:", error.message)
-        toast.error("Gagal menghapus transaksi")
+        // toast.error("Gagal menghapus transaksi")
       }
     }
     setDeleteDialogOpen(false)
     setLoading(false)
+    fetchData()
   }
 
   const exportPdf = async () => {
