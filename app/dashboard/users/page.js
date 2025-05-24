@@ -30,6 +30,7 @@ export default function UsersPage() {
   const [isAddUserOpen, setIsAddUserOpen] = useState(false)
   const [isEditUserOpen, setIsEditUserOpen] = useState(false)
   const [currentUser, setCurrentUser] = useState(null)
+  const [userRole, setUserRole] = useState(null)
   const [pagination, setPagination] = useState({
     currentPage: 1,
     totalPages: 0,
@@ -42,10 +43,45 @@ export default function UsersPage() {
     password: "",
     role: "1",
     status: "1",
+    client_id: "",
   })
 
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [clients, setClients] = useState([])
+  const [isClientLoading, setIsClientLoading] = useState(true)
+
+  const fetchClients = async () => {
+    setIsClientLoading(true) // Set loading state
+    setClients([]) // Reset clients state
+    const token = localStorage.getItem("token")
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL
+    try {
+      const response = await axios.get(`${apiUrl}/api/warehouses?pagination=false`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      })
+      const responseData = response.data
+      let clientData = []
+      clientData = responseData.data.map((client) => ({
+        id: client.id,
+        name: client.name,
+      }))
+      setClients(clientData)
+    } catch (error) {
+      if (error.response && error.response.status === 401) {
+        // Handle unauthorized error
+        localStorage.removeItem("token")
+        window.location.href = "/?forceLogout=true"
+        return
+      }
+      console.error("Error fetching clients:", error)
+      setError("Gagal mengambil data client. Silakan coba lagi.")
+    }
+    setIsClientLoading(false) // Reset loading state
+  }
 
   // Debounce search term
   useEffect(() => {
@@ -57,9 +93,16 @@ export default function UsersPage() {
     }
   }, [searchTerm])
 
+  useEffect(() => {
+    const role = localStorage.getItem("userRole")
+    setUserRole(role)
+    console.log("User role:", role)
+  }, [localStorage.getItem("userRole")])
+
   const fetchData = async () => {
     setIsLoading(true) // Set loading state
     setError(null) // Reset error state
+    setUsers([]) // Reset users state
     try {
       const token = localStorage.getItem("token")
       const searchFilter = debouncedSearchTerm ? `search=${debouncedSearchTerm}` : ""
@@ -79,10 +122,11 @@ export default function UsersPage() {
         username: user.name,
         name: user.name,
         email: user.email,
-        role: user.role === 1 ? "admin" : "staff",
+        role: user.role === 1 ? "admin" : (user.role === 3 ? "superadmin" : "staff"),
         lastLogin: user.last_login_at ?? "-",
         status: user.status === 1 ? "active" : "inactive",
-        createdAt: user.created_at
+        createdAt: user.created_at,
+        client: user.client,
       }))
       console.log("User data:", userData)
       setUsers(userData)
@@ -117,6 +161,7 @@ export default function UsersPage() {
     // Validate form
     if (!newUser.name || !newUser.email || !newUser.password) {
       alert("Semua field wajib diisi")
+      setIsLoading(false)
       return
     }
 
@@ -135,6 +180,7 @@ export default function UsersPage() {
             password: newUser.password,
             role: newUser.role,
             status: newUser.status,
+            client_id: newUser.client_id,
           },
           {
             headers: {
@@ -182,6 +228,7 @@ export default function UsersPage() {
       alert("Nama, username, dan email wajib diisi")
       return
     }
+    setIsLoading(true) // Set loading state
 
     // setUsers(updatedUsers)
     // localStorage.setItem("users", JSON.stringify(updatedUsers))
@@ -279,7 +326,7 @@ export default function UsersPage() {
         </div>
         <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
           <DialogTrigger asChild>
-            <Button>
+            <Button onClick={fetchClients}>
               <Plus className="mr-2 h-4 w-4" />
               Tambah User
             </Button>
@@ -323,6 +370,9 @@ export default function UsersPage() {
                     <SelectValue placeholder="Pilih role" />
                   </SelectTrigger>
                   <SelectContent>
+                    {(userRole === "3" || userRole === 3) && (
+                      <SelectItem value="3">Superadmin</SelectItem>
+                    )}
                     <SelectItem value="1">Admin</SelectItem>
                     <SelectItem value="2">Staff</SelectItem>
                   </SelectContent>
@@ -340,6 +390,27 @@ export default function UsersPage() {
                   </SelectContent>
                 </Select>
               </div>
+              {
+                userRole === "3" || userRole === 3 ? (
+                  <div className="grid gap-2">
+                    <Label htmlFor="client_id">Client</Label>
+                    <Select {...isClientLoading && "disabled"} className={isClientLoading && "animate-pulse"} value={newUser.client_id} onValueChange={(value) => setNewUser({ ...newUser, client_id: value })}>
+                      <SelectTrigger id="client_id">
+                        <SelectValue placeholder={isClientLoading ? "Loading.." : "Pilih Clients"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {
+                          clients.map((client) => (
+                            <SelectItem key={client.id} value={client.id}>
+                              {client.name}
+                            </SelectItem>
+                          ))
+                        }
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : null
+              }
             </div>
             {error && <p className="text-sm text-red-500">{error}</p>}
             <DialogFooter>
@@ -400,6 +471,7 @@ export default function UsersPage() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Client</TableHead>
                   <TableHead>Nama</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Role</TableHead>
@@ -413,11 +485,12 @@ export default function UsersPage() {
                 {users.length > 0 ? (
                   users.map((user) => (
                     <TableRow key={user.id}>
+                      <TableCell className="font-medium">{user.client ? user.client.name : "-"}</TableCell>
                       <TableCell className="font-medium">{user.name}</TableCell>
                       <TableCell>{user.email}</TableCell>
                       <TableCell>
                         <Badge variant="outline">
-                          {user.role === "admin" ? "Admin" : user.role === "manager" ? "Manager" : "Staff"}
+                          {user.role === "admin" ? "Admin" : user.role === "superadmin" ? "Superadmin" : "Staff"}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -483,6 +556,11 @@ export default function UsersPage() {
                                         <SelectValue placeholder="Pilih role" />
                                       </SelectTrigger>
                                       <SelectContent>
+                                        {
+                                          (userRole === "3" || userRole === 3) && (
+                                            <SelectItem value="3">Superadmin</SelectItem>
+                                          )
+                                        }
                                         <SelectItem value="1">Admin</SelectItem>
                                         <SelectItem value="2">Staff</SelectItem>
                                       </SelectContent>
@@ -509,8 +587,33 @@ export default function UsersPage() {
                                 <Button variant="outline" onClick={() => setIsEditUserOpen(false)}>
                                   Batal
                                 </Button>
-                                {isLoading ? (LoadingButton) : (
-                                  <Button onClick={handleEditUser}>Simpan</Button>)}
+                                {isLoading ? (
+                                  <Button disabled>
+                                    <svg
+                                      className="animate-spin h-5 w-5 mr-3 text-white"
+                                      xmlns="http://www.w3.org/2000/svg"
+                                      viewBox="0 0 24 24"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      strokeWidth="2"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                    >
+                                      <circle cx="12" cy="12" r="10" />
+                                      <line x1="12" y1="2" x2="12" y2="6" />
+                                      <line x1="12" y1="18" x2="12" y2="22" />
+                                      <line x1="2" y1="12" x2="6" y2="12" />
+                                      <line x1="18" y1="12" x2="22" y2="12" />
+                                      <line x1="4.22" y1="4.22" x2="7.76" y2="7.76" />
+                                      <line x1="16.24" y1="16.24" x2="19.78" y2="19.78" />
+                                      <line x1="4.22" y1="19.78" x2="7.76" y2="16.24" />
+                                      <line x1="16.24" y1="7.76" x2="19.78" y2="4.22" />
+                                    </svg>
+                                    Menyimpan...
+                                  </Button>
+                                ) : (
+                                  <Button onClick={handleEditUser}>Simpan</Button>
+                                )}
                               </DialogFooter>
                             </DialogContent>
                           </Dialog>
@@ -529,20 +632,20 @@ export default function UsersPage() {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-6">
-                      Tidak ada pengguna yang ditemukan
+                    <TableCell colSpan={7} className={isLoading ? "animate-pulse text-center py-6" : "text-center py-6"}>
+                      {isLoading ? "Loading..." : "Tidak ada data pengguna ditemukan"}
                     </TableCell>
                   </TableRow>
                 )}
               </TableBody>
               <TableFooter>
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-4">
+                  <TableCell colSpan={8} className="text-center py-4">
                     {pagination.currentPage} dari {pagination.totalPages} halaman
                   </TableCell>
                 </TableRow>
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-4">
+                  <TableCell colSpan={8} className="text-center py-4">
                     <Button
                       className="button-sm mr-2"
                       variant="outline"

@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Search, Edit, Trash2, Download, Eye } from "lucide-react"
+import { Plus, Search, Edit, Trash2, Download, Eye, Edit2 } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import axios from "axios"
 import { Calendar } from "@/components/ui/calendar"
@@ -16,10 +16,8 @@ import { cn } from "@/lib/utils"
 import { CalendarIcon } from "lucide-react"
 import { format } from "date-fns"
 import { useSearchParams, useRouter } from "next/navigation"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { toast } from "@radix-ui/react-toast"
-import { Dialog } from "@radix-ui/react-dialog"
 import ConfirmDialog from "@/components/ui/confirmdialog"
+import { id } from "date-fns/locale"
 
 export default function TransactionsPage() {
   const router = useRouter()
@@ -37,6 +35,7 @@ export default function TransactionsPage() {
   const [loading, setLoading] = useState(true)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [selectedDeleteId, setSelectedDeleteId] = useState(null)
+  const [user, setUser] = useState(null)
   console.log("Delete dialog open:", deleteDialogOpen)
 
   const [showModalExport, setShowModalExport] = useState(false)
@@ -120,6 +119,15 @@ export default function TransactionsPage() {
     fetchData()
     // setLoading(false)
   }, [filterCategory, debouncedSearchTerm, filterDate, pagination.currentPage, from])
+
+  useEffect(() => {
+    const userData = localStorage.getItem("user")
+    if (userData) {
+      const parsedUser = JSON.parse(userData)
+      setUser(parsedUser)
+      console.log("User data:", parsedUser)
+    }
+  }, [])
 
 
   const handleDelete = async () => {
@@ -378,8 +386,14 @@ export default function TransactionsPage() {
                     {transactions && transactions.length > 0 ? (
                       transactions.map((transaction) => (
                         <TableRow key={transaction.uuid}>
-                          <TableCell>{new Date(transaction.created_at).toLocaleDateString("id-ID")}</TableCell>
-                          <TableCell>{transaction.transaction_at ? new Date(transaction.transaction_at).toLocaleDateString("id-ID") : "-"}</TableCell>
+                          <TableCell>
+                            {format(new Date(transaction.created_at), "d MMMM yyyy", { locale: id })}
+                          </TableCell>
+                          <TableCell>
+                            {transaction.transaction_at
+                              ? format(new Date(transaction.transaction_at), "d MMMM yyyy", { locale: id })
+                              : "-"}
+                          </TableCell>
                           <TableCell>{transaction.description}</TableCell>
                           <TableCell>
                             <Badge variant={transaction.type === "pemasukan" ? "outline" : "secondary"}>
@@ -405,7 +419,14 @@ export default function TransactionsPage() {
                                 </Button>
                               </Link>
                               {
-                                (userRole === "1" || userRole === 1) && (
+                                transaction.user_id === user.id && (
+                                  <Button variant="ghost" className="flex items-center gap-2" onClick={() => router.push(`/dashboard/transactions/add?transaction_uuid=${transaction.uuid}&isEdit=true`)}>
+                                    <Edit2 className="h-4 w-4" />
+                                  </Button>
+                                )
+                              }
+                              {
+                                (userRole === "1" || userRole === 1 || user.id === transaction.user_id) && (
                                   <>
                                     <Button variant="ghost" size="icon" onClick={() => {
                                       setSelectedDeleteId(transaction.id);

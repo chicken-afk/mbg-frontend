@@ -18,7 +18,7 @@ export default function Header({ onSidebarOpen }) {
 
   const handleLogout = () => {
     localStorage.removeItem("isAuthenticated");
-    localStorage.removeItem("user");
+    localStorage.removeItem("users");
     router.push("/");
   };
 

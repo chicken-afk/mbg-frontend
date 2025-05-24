@@ -3,14 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, Users, FileText, PlusCircle } from "lucide-react";
+import { LayoutDashboard, Users, FileText, PlusCircle, UserPlus2Icon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "./ui/button";
 import { useMobile } from "@/hooks/use-mobile";
 
 const baseMenuItems = [
-  { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { title: "Transaksi", href: "/dashboard/transactions", icon: FileText },
 ];
 
 export default function Sidebar({ className, sidebarOpen, onClose = () => { }, ...props }) {
@@ -23,8 +21,24 @@ export default function Sidebar({ className, sidebarOpen, onClose = () => { }, .
     if ((role === "1" || role === 1) && !menuItems.some((item) => item.href === "/dashboard/users")) {
       setMenuItems([
         ...baseMenuItems,
+        { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+        { title: "Transaksi", href: "/dashboard/transactions", icon: FileText },
         { title: "Manajemen User", href: "/dashboard/users", icon: Users },
-        { title: "Buat Form Baru", href: "/dashboard/form-builder", icon: PlusCircle },
+        { title: "Buat Form Baru", href: "/dashboard/form-builder", icon: PlusCircle }
+      ]);
+    }
+    if ((role === "2" || role === 2) && !menuItems.some((item) => item.href === "/dashboard/clients")) {
+      setMenuItems([
+        ...baseMenuItems,
+        { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+        { title: "Transaksi", href: "/dashboard/transactions", icon: FileText },
+      ]);
+    }
+    if ((role === "3" || role === 3) && !menuItems.some((item) => item.href === "/dashboard/clients")) {
+      setMenuItems([
+        ...baseMenuItems,
+        { title: "Manajemen User", href: "/dashboard/users", icon: Users },
+        { title: "Client", href: "/dashboard/clients", icon: UserPlus2Icon },
       ]);
     }
   }, []);

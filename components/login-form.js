@@ -41,10 +41,12 @@ export default function LoginForm() {
         localStorage.setItem("token", token);
         localStorage.setItem("isAuthenticated", "true");
         localStorage.setItem("user", JSON.stringify(resData.data.user));
+        localStorage.setItem("users", JSON.stringify(resData.data.user));
         localStorage.setItem("userRole", resData.data.user.role);
         localStorage.setItem("userName", resData.data.user.name);
         localStorage.setItem("userEmail", resData.data.user.email);
-        router.push("/dashboard");
+        const redirectUrl = resData.data.user.role === 3 ? "/dashboard/clients" : "/dashboard";
+        router.push(redirectUrl);
       } else {
         setError("Internal Server Error");
       }

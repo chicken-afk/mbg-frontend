@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { ArrowLeft, Edit, Trash2, AlertCircle, Printer, Download } from "lucide-react"
+import { ArrowLeft, Edit, Trash2, AlertCircle, Printer, Download, Edit2 } from "lucide-react"
 import { format } from "date-fns"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useToast } from "@/hooks/use-toast"
@@ -17,6 +17,14 @@ import axios from 'axios';
 export default function viewTransaction() {
     const params = useParams();
     const uuid = params.uuid;
+    const [user, setUser] = useState(null);
+    useEffect(() => {
+        const userData = localStorage.getItem("user");
+        const parsedUser = userData ? JSON.parse(userData) : null;
+        if (parsedUser) {
+            setUser(parsedUser);
+        }
+    }, []);
 
     const [error, setError] = useState("")
     const [loading, setLoading] = useState(true)
@@ -144,6 +152,55 @@ export default function viewTransaction() {
                                                 <dt className="font-medium text-muted-foreground">Deskripsi</dt>
                                                 <dd>{transaction.description}</dd>
                                             </div>
+                                            {/* Show file uploaded from transaction.invoice_file, it can be pdf image etc but in base64 format */}
+                                            {transaction.invoice_file && (
+                                                <div className="flex justify-between border-b pb-2">
+                                                    <dt className="font-medium text-muted-foreground">File Invoice</dt>
+                                                    <dd>
+                                                        {/* Detect file type from base64 string */}
+                                                        {(() => {
+                                                            // Example: data:application/pdf;base64,JVBERi0xLjQKJ...
+                                                            const base64 = transaction.invoice_file;
+                                                            const match = base64.match(/^data:(.*?);base64,/);
+                                                            const mimeType = match ? match[1] : "";
+
+                                                            if (mimeType.startsWith("image/")) {
+                                                                // Show image preview
+                                                                return (
+                                                                    <a href={base64} target="_blank" rel="noopener noreferrer">
+                                                                        <img
+                                                                            src={base64}
+                                                                            alt="Invoice"
+                                                                            className="max-h-32 rounded shadow border hover:scale-105 transition"
+                                                                            style={{ display: "inline-block" }}
+                                                                        />
+                                                                    </a>
+                                                                );
+                                                            } else if (mimeType === "application/pdf") {
+                                                                // Show PDF link
+                                                                return (
+                                                                    <a href={base64} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
+                                                                        Lihat PDF
+                                                                    </a>
+                                                                );
+                                                            } else {
+                                                                // Other file types: show download link
+                                                                return (
+                                                                    <a
+                                                                        href={base64}
+                                                                        // download="invoice_file"
+                                                                        className="text-blue-500 hover:underline"
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                    >
+                                                                        Liat File
+                                                                    </a>
+                                                                );
+                                                            }
+                                                        })()}
+                                                    </dd>
+                                                </div>
+                                            )}
                                         </dl>
                                     </div>
 
@@ -174,16 +231,25 @@ export default function viewTransaction() {
                                     </div>
                                 </div>
                             </CardContent>
-                            <CardFooter className="bg-primary/5 rounded-b-lg flex justify-between">
+                            <CardFooter className="bg-primary/5 rounded-b-lg flex justify-between pt-1">
                                 <div className="text-sm text-muted-foreground">
                                     Terakhir diperbarui:{" "}
                                     {transaction.updated_at
                                         ? format(new Date(transaction.updated_at), "dd MMMM yyyy, HH:mm")
                                         : format(new Date(), "dd MMMM yyyy, HH:mm")}
                                 </div>
-                                <Link href="/dashboard/transactions">
-                                    <Button variant="outline">Kembali ke Daftar</Button>
-                                </Link>
+                                <div className="flex items-center space-x-2">
+                                    {
+                                        transaction.user_id === user.id && (
+                                            <Button variant="outline" className="flex items-center gap-2 bg-yellow-400" onClick={() => router.push(`/dashboard/transactions/add?transaction_uuid=${transaction.uuid}&isEdit=true`)}>
+                                                <Edit2 className="h-4 w-4" />
+                                            </Button>
+                                        )
+                                    }
+                                    <Link href="/dashboard/transactions">
+                                        <Button variant="outline">Kembali ke Daftar</Button>
+                                    </Link>
+                                </div>
                             </CardFooter>
                         </Card>
 
