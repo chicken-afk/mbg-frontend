@@ -171,6 +171,7 @@ export default function UsersPage() {
     const token = localStorage.getItem("token")
     const apiUrl = process.env.NEXT_PUBLIC_API_URL
     try {
+      const clientId = newUser.client_id === "" ? null : newUser.client_id
       const res = await axios
         .post(
           `${apiUrl}/api/users`,
@@ -180,7 +181,7 @@ export default function UsersPage() {
             password: newUser.password,
             role: newUser.role,
             status: newUser.status,
-            client_id: newUser.client_id,
+            client_id: clientId,
           },
           {
             headers: {
