@@ -4,10 +4,13 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { LogOut, Menu } from "lucide-react";
+import { useProject } from "@/contexts/ProjectContext";
 
-export default function Header({ onSidebarOpen }) {
+export default function Header({ onProjectChange, onSidebarOpen }) {
   const [user, setUser] = useState(null);
   const router = useRouter();
+  const { activeProject } = useProject()
+  const [activeProjectName, setActiveProjectName] = useState("");
 
   useEffect(() => {
     const userData = localStorage.getItem("user");
@@ -15,6 +18,16 @@ export default function Header({ onSidebarOpen }) {
       setUser(JSON.parse(userData));
     }
   }, []);
+
+  useEffect(() => {
+    console.log("Active project changed:", activeProject);
+    if (activeProject) {
+      setActiveProjectName(activeProject.projectName);
+    } else {
+      setActiveProjectName("");
+    }
+  }
+    , [activeProject]);
 
   const handleLogout = () => {
     localStorage.removeItem("isAuthenticated");
@@ -36,6 +49,10 @@ export default function Header({ onSidebarOpen }) {
 
       <div className="flex-1">
         <h1 className="text-lg font-semibold md:text-xl">Admin Panel</h1>
+        {activeProject && (
+          <p className="text-xs text-muted-foreground md:text-sm "> {activeProject.projectName}
+          </p>
+        )}
       </div>
 
       <div className="flex items-center gap-2">

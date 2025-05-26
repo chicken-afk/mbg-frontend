@@ -107,8 +107,8 @@ export default function ClientsPage() {
     const handleAddClient = async () => {
         setError(null)
         setIsLoading(true)
-        if (!newClient.name || newClient.name.trim() === "" || newClient.password.trim() === "") {
-            alert("Nama, email, dan password wajib diisi")
+        if (!newClient.name || newClient.name.trim() === "") {
+            alert("Nama wajib diisi")
             setIsLoading(false)
             return
         }
@@ -145,7 +145,7 @@ export default function ClientsPage() {
                 window.location.href = "/"
                 return
             }
-            setError("Gagal menambahkan client. Silakan coba lagi.")
+            setError("Gagal menambahkan project. Silakan coba lagi.")
             setIsLoading(false)
             return
         }
@@ -205,7 +205,7 @@ export default function ClientsPage() {
     }
 
     const handleDeleteClient = async (id) => {
-        if (confirm("Apakah Anda yakin ingin menghapus client ini?")) {
+        if (confirm("Apakah Anda yakin ingin menghapus project ini?")) {
             const token = localStorage.getItem("token")
             const apiUrl = process.env.NEXT_PUBLIC_API_URL
             try {
@@ -239,20 +239,20 @@ export default function ClientsPage() {
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Manajemen Client</h1>
-                    <p className="text-muted-foreground">Kelola data client/warehouse di sistem</p>
+                    <h1 className="text-3xl font-bold tracking-tight">Manajemen project</h1>
+                    <p className="text-muted-foreground">Kelola data project di sistem</p>
                 </div>
                 <Dialog open={isAddClientOpen} onOpenChange={setIsAddClientOpen}>
                     <DialogTrigger asChild>
                         <Button>
                             <Plus className="mr-2 h-4 w-4" />
-                            Tambah Client
+                            Tambah Project
                         </Button>
                     </DialogTrigger>
                     <DialogContent>
                         <DialogHeader>
-                            <DialogTitle>Tambah Client Baru</DialogTitle>
-                            <DialogDescription>Isi informasi untuk membuat client baru</DialogDescription>
+                            <DialogTitle>Tambah Project Baru</DialogTitle>
+                            <DialogDescription>Isi informasi untuk membuat project baru</DialogDescription>
                         </DialogHeader>
                         <div className="grid gap-4 py-4">
                             <div className="grid gap-2">
@@ -290,28 +290,6 @@ export default function ClientsPage() {
                                         <SelectItem value="0">Inactive</SelectItem>
                                     </SelectContent>
                                 </Select>
-                            </div>
-                            <div className="grid gap-2">
-                                <p className="mt-5 mb-0">Account Information</p>
-                                <span className="text-sm text-muted-foreground mt-0">Informasi akun client untuk login sebagai admin</span>
-                            </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="email">Email</Label>
-                                <Input
-                                    id="email"
-                                    type="email"
-                                    value={newClient.email}
-                                    onChange={(e) => setNewClient({ ...newClient, email: e.target.value })}
-                                />
-                            </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="password">Password</Label>
-                                <Input
-                                    id="password"
-                                    type="password"
-                                    value={newClient.password}
-                                    onChange={(e) => setNewClient({ ...newClient, password: e.target.value })}
-                                />
                             </div>
                         </div>
                         {error && <p className="text-sm text-red-500">{error}</p>}
@@ -351,8 +329,8 @@ export default function ClientsPage() {
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Daftar Client</CardTitle>
-                    <CardDescription>Semua client/warehouse yang terdaftar dalam sistem</CardDescription>
+                    <CardTitle>Daftar Project</CardTitle>
+                    <CardDescription>Semua project yang terdaftar dalam sistem</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="flex mb-6">
@@ -360,7 +338,7 @@ export default function ClientsPage() {
                             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                             <Input
                                 type="search"
-                                placeholder="Cari client berdasar nama atau email..."
+                                placeholder="Cari project berdasar nama atau email..."
                                 className="pl-8"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -373,7 +351,6 @@ export default function ClientsPage() {
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Nama</TableHead>
-                                    <TableHead>Email</TableHead>
                                     <TableHead>Telepon</TableHead>
                                     <TableHead>Alamat</TableHead>
                                     <TableHead>Status</TableHead>
@@ -392,7 +369,6 @@ export default function ClientsPage() {
                                             clients.map((client) => (
                                                 <TableRow key={client.id}>
                                                     <TableCell className="font-medium">{client.name}</TableCell>
-                                                    <TableCell>{client.email}</TableCell>
                                                     <TableCell>{client.phone}</TableCell>
                                                     <TableCell>{client.address}</TableCell>
                                                     <TableCell>
@@ -437,15 +413,6 @@ export default function ClientsPage() {
                                                                                     id="edit-name"
                                                                                     value={currentClient.name}
                                                                                     onChange={(e) => setCurrentClient({ ...currentClient, name: e.target.value })}
-                                                                                />
-                                                                            </div>
-                                                                            <div className="grid gap-2">
-                                                                                <Label htmlFor="edit-email">Email</Label>
-                                                                                <Input
-                                                                                    id="edit-email"
-                                                                                    type="email"
-                                                                                    value={currentClient.email}
-                                                                                    onChange={(e) => setCurrentClient({ ...currentClient, email: e.target.value })}
                                                                                 />
                                                                             </div>
                                                                             <div className="grid gap-2">
@@ -505,7 +472,7 @@ export default function ClientsPage() {
                                         ) : (
                                             <TableRow>
                                                 <TableCell colSpan={7} className="text-center py-6">
-                                                    Tidak ada client yang ditemukan
+                                                    Tidak ada project yang ditemukan
                                                 </TableCell>
                                             </TableRow>
                                         )

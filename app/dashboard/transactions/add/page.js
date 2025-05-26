@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ArrowLeft, Plus, Trash2 } from "lucide-react"
 import Link from "next/link"
 import axios from "axios"
+import { useProject } from "@/contexts/ProjectContext"
 
 export default function AddTransactionPage() {
   const router = useRouter()
@@ -31,6 +32,7 @@ export default function AddTransactionPage() {
   const [isLoading, setIsLoading] = useState(false)
 
   const searchParams = useSearchParams();
+  const { activeProject } = useProject()
 
   useEffect(() => {
     const paramUUid = searchParams.get("transaction_uuid");
@@ -153,6 +155,7 @@ export default function AddTransactionPage() {
       notes: formData.get("notes"),
       invoiceFileBase64: invoiceFile,
       customFields: [],
+      warehouse_id: activeProject?.id || null,
     }
 
 

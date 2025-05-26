@@ -18,6 +18,7 @@ import { format } from "date-fns"
 import { useSearchParams, useRouter } from "next/navigation"
 import ConfirmDialog from "@/components/ui/confirmdialog"
 import { id } from "date-fns/locale"
+import { useProject } from "@/contexts/ProjectContext"
 
 export default function TransactionsPage() {
   const router = useRouter()
@@ -36,6 +37,7 @@ export default function TransactionsPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [selectedDeleteId, setSelectedDeleteId] = useState(null)
   const [user, setUser] = useState(null)
+  const { activeProject } = useProject()
   console.log("Delete dialog open:", deleteDialogOpen)
 
   const [showModalExport, setShowModalExport] = useState(false)
@@ -75,7 +77,7 @@ export default function TransactionsPage() {
 
       const token = localStorage.getItem("token")
       const apiUrl = process.env.NEXT_PUBLIC_API_URL
-      const response = await axios.get(`${apiUrl}/api/transactions?${filterUrl}`, {
+      const response = await axios.get(`${apiUrl}/api/transactions?${filterUrl}&warehouse_id=${activeProject.id}`, {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -115,10 +117,12 @@ export default function TransactionsPage() {
   // Fetching logic (uses debouncedSearchTerm)
   useEffect(() => {
     // setLoading(true)
+    if (activeProject.id !== undefined) {
 
-    fetchData()
+      fetchData()
+    }
     // setLoading(false)
-  }, [filterCategory, debouncedSearchTerm, filterDate, pagination.currentPage, from])
+  }, [filterCategory, debouncedSearchTerm, filterDate, pagination.currentPage, from, activeProject])
 
   useEffect(() => {
     const userData = localStorage.getItem("user")

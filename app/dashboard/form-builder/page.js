@@ -12,23 +12,11 @@ import { ArrowLeft, ArrowDown, ArrowUp, Plus, Trash2, Edit2, Edit2Icon } from "l
 import Link from "next/link"
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd"
 import axios from "axios"
-
-// Mock implementation of react-beautiful-dnd for simplicity
-// In a real app, you would install and use the actual library
-// const DragDropContext = ({ children, onDragEnd }) => {
-//   return <div>{children}</div>
-// }
-
-// const Droppable = ({ children, droppableId }) => {
-//   return <div>{children({ droppableProps: {}, innerRef: null, placeholder: null })}</div>
-// }
-
-// const Draggable = ({ children, draggableId, index }) => {
-//   return <div>{children({ draggableProps: {}, dragHandleProps: {}, innerRef: null })}</div>
-// }
+import { useProject } from "@/contexts/ProjectContext"
 
 export default function FormBuilderPage() {
   const router = useRouter()
+  const { activeProject } = useProject()
   const [fields, setFields] = useState([])
   const [newField, setNewField] = useState({
     id: null,
@@ -37,19 +25,26 @@ export default function FormBuilderPage() {
     type: "text",
     required: false,
     options: [],
+    warehouse_id: activeProject.id || null,
   })
   const [newOption, setNewOption] = useState("")
   const [message, setMessage] = useState(null)
   const [error, setError] = useState(null)
   const [submitting, setSubmitting] = useState(false)
   const [isAdd, setIsAdd] = useState(true)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(false)
 
   const fetchData = async () => {
     setIsLoading(true)
+    setFields([])
     const token = localStorage.getItem("token")
+    if (activeProject.id === undefined || activeProject.id === null) {
+      console.log("No active project found")
+      setIsLoading(false)
+      return
+    }
     const apiUrl = process.env.NEXT_PUBLIC_API_URL
-    const response = await axios.get(`${apiUrl}/api/form-fields`, {
+    const response = await axios.get(`${apiUrl}/api/form-fields?warehouse_id=${activeProject.id}`, {
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${token}`,
@@ -79,6 +74,7 @@ export default function FormBuilderPage() {
       type: field.type,
       required: field.required,
       options: field.options || [],
+      warehouse_id: activeProject.id || null,
     })
     setNewOption("")
     setFields(fields.filter((f) => f.id !== field.id))
@@ -87,14 +83,36 @@ export default function FormBuilderPage() {
     setSubmitting(false)
   }
 
+  const resetAllForm = () => {
+    setIsAdd(true)
+    setNewField({
+      id: null,
+      name: "",
+      label: "",
+      type: "text",
+      required: false,
+      options: [],
+      warehouse_id: activeProject.id || null,
+    })
+    setNewOption("")
+    setMessage(null)
+    setError(null)
+    setSubmitting(false)
+    setFields(fields.filter((f) => f.id !== newField.id))
+  }
+
   useEffect(() => {
     fetchData()
+    if (activeProject || activeProject.id !== undefined) {
+      console.log("Active project found:", activeProject)
+      resetAllForm()
+    }
     // Load existing form fields
     // const storedFields = localStorage.getItem("transactionFormFields")
     // if (storedFields) {
     //   setFields(JSON.parse(storedFields))
     // }
-  }, [])
+  }, [activeProject])
 
   const handleAddField = async () => {
     setError(null)
@@ -113,8 +131,7 @@ export default function FormBuilderPage() {
       id: newField.id ?? null,
       name: newField.name.replace(/\s+/g, "").toLowerCase(),
     }
-    console.log("Field to add:", fieldToAdd)
-    // return
+
     //Post the new field to the server
     const apiUrl = process.env.NEXT_PUBLIC_API_URL
     const token = localStorage.getItem("token")
@@ -339,7 +356,7 @@ export default function FormBuilderPage() {
             )}
           </CardContent>
           <CardFooter>
-            {submitting ? (
+            {submitting || activeProject.id === undefined || activeProject.id === null ? (
               <Button disabled className="w-full">
                 <span className="animate-pulse">Loading...</span>
               </Button>
@@ -411,7 +428,7 @@ export default function FormBuilderPage() {
                         </Draggable>
                       ))
                     ) : (
-                      isLoading ? (
+                      isLoading || activeProject.id === undefined ? (
                         <div className="text-center py-8 text-muted-foreground animate-pulse">Loading...</div>
                       ) : (
                         <div className="text-center py-8 text-muted-foreground">Tidak ada field yang ditemukan</div>

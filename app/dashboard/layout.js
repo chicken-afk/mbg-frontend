@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Sidebar from "@/components/sidebar";
 import Header from "@/components/header";
 import { useMobile } from "@/hooks/use-mobile";
+import { ProjectProvider } from "@/contexts/ProjectContext";
 
 export default function DashboardLayout({ children }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -12,6 +13,22 @@ export default function DashboardLayout({ children }) {
   const router = useRouter();
   const isMobileDevice = useMobile();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  const [activeProject, setActiveProject] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem("activeProjet");
+    }
+    return null;
+  });
+
+  useEffect(() => {
+    const handleStorageChange = () => {
+      setActiveProject(localStorage.getItem("activeProjet"))
+    }
+
+    window.addEventListener("activeProjetChanged", handleStorageChange)
+    return () => window.removeEventListener("activeProjetChanged", handleStorageChange)
+  }, [])
 
   const closeSidebar = () => setIsSidebarOpen(false);
   const openSidebar = () => setIsSidebarOpen(true);
@@ -34,17 +51,26 @@ export default function DashboardLayout({ children }) {
     );
   }
 
+
   if (!isAuthenticated) return null;
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <Header onSidebarOpen={openSidebar} />
-      <div className="flex flex-1">
-        <Sidebar sidebarOpen={isSidebarOpen} onClose={closeSidebar} />
-        <main className={`flex-1 overflow-auto ${isMobileDevice ? "p-2" : "p-6 pl-72"} bg-muted/40`}>
-          <div className="">{children}</div>
-        </main>
+    <ProjectProvider>
+      <div className="flex min-h-screen flex-col">
+        <Header onSidebarOpen={openSidebar} />
+        <div className="flex flex-1">
+          <Sidebar
+            onProjectChange={(newProject) => {
+              localStorage.setItem("activeProjet", newProject)
+              window.dispatchEvent(new Event("activeProjetChanged"))
+              setActiveProject(newProject)
+            }}
+            sidebarOpen={isSidebarOpen} onClose={closeSidebar} />
+          <main className={`flex-1 overflow-auto ${isMobileDevice ? "p-2" : "p-6 pl-72"} bg-muted/40`}>
+            <div className="">{children}</div>
+          </main>
+        </div>
       </div>
-    </div>
+    </ProjectProvider>
   );
 }

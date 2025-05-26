@@ -3,18 +3,79 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, Users, FileText, PlusCircle, UserPlus2Icon } from "lucide-react";
+import { LayoutDashboard, Users, FileText, PlusCircle, UserPlus2Icon, List } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "./ui/button";
 import { useMobile } from "@/hooks/use-mobile";
+import axios from "axios";
+import { useProject } from "@/contexts/ProjectContext";
 
 const baseMenuItems = [
 ];
 
-export default function Sidebar({ className, sidebarOpen, onClose = () => { }, ...props }) {
+
+export default function Sidebar({ className, sidebarOpen, onClose = () => { }, onProjectChange = () => { }, ...props }) {
   const pathname = usePathname();
   const [menuItems, setMenuItems] = useState(baseMenuItems);
   const isMobileDevice = useMobile();
+  const [isLoadingNavigation, setIsLoadingNavigation] = useState(false);
+  const [projectList, setProjectList] = useState(null);
+  const [userRole, setUserRole] = useState(null);
+  const { updateProject } = useProject()
+  const { activeProject } = useProject()
+
+  const fetchProjects = async () => {
+    setIsLoadingNavigation(true);
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/warehouses?pagination=false`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      console.log("Projects fetched response:", response);
+      const projects = response.data.data;
+      const formattedProjects = projects.map((project) => ({
+        "id": project.id,
+        "projectName": project.name ? project.name.toUpperCase() : "",
+      }));
+      console.log("Projects fetched formatted project:", formattedProjects);
+      setProjectList(formattedProjects);
+      console.log("Projects fetched from project list:", projectList);
+      //Set default active project to the first project if available
+      if (formattedProjects.length > 0) {
+        updateProject(formattedProjects[0]);
+      } else {
+        updateProject(null);
+      }
+    } catch (error) {
+      if (error.response.status === 401) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("isAuthenticated");
+        localStorage.removeItem("userRole");
+        localStorage.removeItem("activeProjet");
+        window.dispatchEvent(new Event("activeProjetChanged"));
+        window.location.href = "/?forceLogout=true";
+      }
+      console.error("Error fetching projects:", error);
+    }
+    setIsLoadingNavigation(false);
+  };
+
+  const handleProjectClick = (project) => {
+    updateProject(project);
+    onProjectChange(project); // ✅ Notify parent
+    if (isMobileDevice) {
+      onClose(); // Close sidebar on mobile
+    }
+  };
+
+  useEffect(() => {
+    setUserRole(localStorage.getItem("userRole"));
+    if (userRole !== 3 || userRole !== "3") {
+      fetchProjects();
+    }
+  }, []);
 
   useEffect(() => {
     const role = localStorage.getItem("userRole");
@@ -38,7 +99,7 @@ export default function Sidebar({ className, sidebarOpen, onClose = () => { }, .
       setMenuItems([
         ...baseMenuItems,
         { title: "Manajemen User", href: "/dashboard/users", icon: Users },
-        { title: "Client", href: "/dashboard/clients", icon: UserPlus2Icon },
+        { title: "Projects", href: "/dashboard/clients", icon: List },
       ]);
     }
   }, []);
@@ -91,6 +152,7 @@ export default function Sidebar({ className, sidebarOpen, onClose = () => { }, .
             </Link>
           ))}
         </nav>
+
       </div>
     );
   }
@@ -115,7 +177,44 @@ export default function Sidebar({ className, sidebarOpen, onClose = () => { }, .
             <span>{item.title}</span>
           </Link>
         ))}
-      </nav>
-    </div>
+
+        {
+          userRole !== 3 && userRole !== "3" && (
+            <>
+              <h2 className="font-semibold mt-2 text-base">Project List</h2>
+              {isLoadingNavigation ? (
+                <div className="flex items-center justify-center h-64">
+                  <p className="text-gray-500">Loading projects...</p>
+                </div>
+              ) : (
+                projectList && projectList.length > 0 && (
+                  <div className="px-4 py-2">
+                    <ul className="space-y-2">
+                      {projectList.map((project) => (
+                        <div
+                          onClick={() => handleProjectClick(project)}
+                          className={"block text-sm text-muted-foreground text-center p-2 rounded-lg hover:text-primary hover:bg-blue-300 hover:cursor-pointer" + (project.id === activeProject.id ? " bg-blue-500 text-white font-semibold shadow-sm" : "")}
+                        >
+                          {project.projectName}
+                        </div>
+                      ))}
+                    </ul>
+                  </div>
+                )
+              )
+              }
+              {
+                !isLoadingNavigation && projectList && projectList.length === 0 && (
+                  <div className="flex items-center justify-center h-64">
+                    <p className="text-gray-500">No projects found.</p>
+                  </div>
+                )
+              }
+            </>
+          )
+        }
+
+      </nav >
+    </div >
   );
 }

@@ -22,6 +22,14 @@ import axios from "axios"
 import { set } from "date-fns"
 import LoadingButton from "@/components/LoadingButton"
 import { toast } from "sonner"
+import { Checkbox } from "@/components/ui/checkbox"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import { Check, ChevronDown } from "lucide-react"
+import { useProject } from "@/contexts/ProjectContext"
 
 export default function UsersPage() {
   const [users, setUsers] = useState([])
@@ -31,6 +39,7 @@ export default function UsersPage() {
   const [isEditUserOpen, setIsEditUserOpen] = useState(false)
   const [currentUser, setCurrentUser] = useState(null)
   const [userRole, setUserRole] = useState(null)
+  const { activeProject } = useProject()
   const [pagination, setPagination] = useState({
     currentPage: 1,
     totalPages: 0,
@@ -44,18 +53,27 @@ export default function UsersPage() {
     role: "1",
     status: "1",
     client_id: "",
+    client_ids: [],
   })
 
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
   const [clients, setClients] = useState([])
-  const [isClientLoading, setIsClientLoading] = useState(true)
+  const [isClientLoading, setIsClientLoading] = useState(false)
+  const selectedClients = clients.filter(c =>
+    Array.isArray(newUser.client_ids) && newUser.client_ids.includes(c.id)
+  );
+
+  const selectedEditClients = clients.filter(c =>
+    currentUser && Array.isArray(currentUser.client_ids) && currentUser.client_ids.includes(c.id)
+  );
 
   const fetchClients = async () => {
     setIsClientLoading(true) // Set loading state
     setClients([]) // Reset clients state
     const token = localStorage.getItem("token")
     const apiUrl = process.env.NEXT_PUBLIC_API_URL
+    console.log("client loading", isClientLoading)
     try {
       const response = await axios.get(`${apiUrl}/api/warehouses?pagination=false`, {
         headers: {
@@ -70,6 +88,7 @@ export default function UsersPage() {
         name: client.name,
       }))
       setClients(clientData)
+      setIsClientLoading(false) // Reset loading state
     } catch (error) {
       if (error.response && error.response.status === 401) {
         // Handle unauthorized error
@@ -105,9 +124,9 @@ export default function UsersPage() {
     setUsers([]) // Reset users state
     try {
       const token = localStorage.getItem("token")
-      const searchFilter = debouncedSearchTerm ? `search=${debouncedSearchTerm}` : ""
+      const searchFilter = debouncedSearchTerm ? `search=${debouncedSearchTerm}` : "search="
       const apiUrl = process.env.NEXT_PUBLIC_API_URL
-      const response = await axios.get(`${apiUrl}/api/users?${searchFilter}`, {
+      const response = await axios.get(`${apiUrl}/api/users?${searchFilter}&warehouse_id=${activeProject.id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
@@ -126,7 +145,9 @@ export default function UsersPage() {
         lastLogin: user.last_login_at ?? "-",
         status: user.status === 1 ? "active" : "inactive",
         createdAt: user.created_at,
+        warehouses: user.warehouses || [],
         client: user.client,
+        client_ids: user.warehouses ? user.warehouses.map(c => c.id) : [],
       }))
       console.log("User data:", userData)
       setUsers(userData)
@@ -151,18 +172,20 @@ export default function UsersPage() {
 
   useEffect(() => {
     // Fetch data from API
-    fetchData()
+    if (activeProject.id !== undefined && activeProject.id !== null) {
+      fetchData()
+    }
     // For now, we'll use our mock data
-  }, [debouncedSearchTerm])
+  }, [debouncedSearchTerm, activeProject])
 
   const handleAddUser = async () => {
     setError(null) // Reset error state
     setIsLoading(true) // Set loading state
     // Validate form
     if (!newUser.name || !newUser.email || !newUser.password) {
-      alert("Semua field wajib diisi")
-      setIsLoading(false)
-      return
+      // alert("Semua field wajib diisi")
+      // setIsLoading(false)
+      // return
     }
 
     console.log("New user data:", newUser)
@@ -171,7 +194,7 @@ export default function UsersPage() {
     const token = localStorage.getItem("token")
     const apiUrl = process.env.NEXT_PUBLIC_API_URL
     try {
-      const clientId = newUser.client_id === "" ? null : newUser.client_id
+      const clientId = newUser.client_ids
       const res = await axios
         .post(
           `${apiUrl}/api/users`,
@@ -217,6 +240,8 @@ export default function UsersPage() {
       password: "",
       role: "1",
       status: "1",
+      client_id: "",
+      client_ids: [],
     })
     fetchData() // Fetch updated data
     setError(null)
@@ -229,6 +254,24 @@ export default function UsersPage() {
       alert("Nama, username, dan email wajib diisi")
       return
     }
+
+    if (currentUser.role === "superadmin") {
+      currentUser.role = 3
+    } else if (currentUser.role === "admin") {
+      currentUser.role = 1
+    } else if (currentUser.role === "staff") {
+      currentUser.role = 2
+    }
+
+    const postData = {
+      name: currentUser.name,
+      email: currentUser.email,
+      role: parseInt(currentUser.role, 10),
+      status: currentUser.status === "active" ? 1 : 0,
+      client_id: currentUser.client_ids,
+      password: currentUser.password || null, // Optional password
+    }
+    console.log("Editing user:", postData)
     setIsLoading(true) // Set loading state
 
     // setUsers(updatedUsers)
@@ -240,12 +283,7 @@ export default function UsersPage() {
       const res = await axios
         .put(
           `${apiUrl}/api/users/${currentUser.id}`,
-          {
-            name: currentUser.name,
-            email: currentUser.email,
-            role: currentUser.role,
-            status: currentUser.status,
-          },
+          postData,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -391,27 +429,48 @@ export default function UsersPage() {
                   </SelectContent>
                 </Select>
               </div>
-              {
-                userRole === "3" || userRole === 3 ? (
-                  <div className="grid gap-2">
-                    <Label htmlFor="client_id">Client</Label>
-                    <Select {...isClientLoading && "disabled"} className={isClientLoading && "animate-pulse"} value={newUser.client_id} onValueChange={(value) => setNewUser({ ...newUser, client_id: value })}>
-                      <SelectTrigger id="client_id">
-                        <SelectValue placeholder={isClientLoading ? "Loading.." : "Pilih Clients"} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {
-                          clients.map((client) => (
-                            <SelectItem key={client.id} value={client.id}>
-                              {client.name}
-                            </SelectItem>
-                          ))
-                        }
-                      </SelectContent>
-                    </Select>
-                  </div>
-                ) : null
-              }
+              <div className="grid gap-2">
+                <Label htmlFor="client_ids">Projects</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      className="w-full justify-between"
+                    >
+                      {selectedClients.length > 0
+                        ? selectedClients.map(c => c.name).join(", ")
+                        : isClientLoading
+                          ? "Loading..."
+                          : "Pilih Project"}
+                      <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full max-h-60 overflow-auto p-2">
+                    {clients.map((client) => (
+                      <div
+                        key={client.id}
+                        className="flex items-center space-x-2 p-2 hover:bg-muted rounded"
+                        onClick={() => {
+                          const isSelected = newUser.client_ids.includes(client.id)
+                          setNewUser({
+                            ...newUser,
+                            client_ids: isSelected
+                              ? newUser.client_ids.filter(id => id !== client.id)
+                              : [...newUser.client_ids, client.id],
+                          })
+                        }}
+                      >
+                        <Checkbox
+                          checked={newUser.client_ids.includes(client.id)}
+                          onCheckedChange={() => { }}
+                        />
+                        <span>{client.name}</span>
+                      </div>
+                    ))}
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
             {error && <p className="text-sm text-red-500">{error}</p>}
             <DialogFooter>
@@ -486,7 +545,10 @@ export default function UsersPage() {
                 {users.length > 0 ? (
                   users.map((user) => (
                     <TableRow key={user.id}>
-                      <TableCell className="font-medium">{user.client ? user.client.name : "-"}</TableCell>
+                      <TableCell className="font-medium">
+                        {user.warehouses.length > 0
+                          ? user.warehouses.map(w => w.name).join(", ")
+                          : "-"}</TableCell>
                       <TableCell className="font-medium">{user.name}</TableCell>
                       <TableCell>{user.email}</TableCell>
                       <TableCell>
@@ -508,13 +570,15 @@ export default function UsersPage() {
                             onOpenChange={(open) => {
                               setIsEditUserOpen(open)
                               if (open) setCurrentUser(user)
+                              console.log("current user", user)
                             }}
                           >
                             <DialogTrigger asChild>
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                onClick={() => {
+                                onClick={async () => {
+                                  await fetchClients() // Fetch clients when opening edit dialog
                                   setCurrentUser(user)
                                   setIsEditUserOpen(true)
                                 }}
@@ -548,9 +612,18 @@ export default function UsersPage() {
                                     />
                                   </div>
                                   <div className="grid gap-2">
+                                    <Label htmlFor="edit-email">Password</Label>
+                                    <span className="text-xs bg-red-400">*Kosongkan jika tidak ingin merubah password</span>
+                                    <Input
+                                      id="edit-password"
+                                      type="password"
+                                      onChange={(e) => setCurrentUser({ ...currentUser, password: e.target.value })}
+                                    />
+                                  </div>
+                                  <div className="grid gap-2">
                                     <Label htmlFor="edit-role">Role</Label>
                                     <Select
-                                      value={currentUser.role}
+                                      defaultValue={currentUser.role === "superadmin" ? "3" : currentUser.role === "admin" ? "1" : "2"}
                                       onValueChange={(value) => setCurrentUser({ ...currentUser, role: value })}
                                     >
                                       <SelectTrigger id="edit-role">
@@ -570,7 +643,7 @@ export default function UsersPage() {
                                   <div className="grid gap-2">
                                     <Label htmlFor="edit-status">Status</Label>
                                     <Select
-                                      value={currentUser.status}
+                                      value={currentUser.status === "active" ? "1" : "0"}
                                       onValueChange={(value) => setCurrentUser({ ...currentUser, status: value })}
                                     >
                                       <SelectTrigger id="edit-status">
@@ -581,6 +654,48 @@ export default function UsersPage() {
                                         <SelectItem value="0">Inactive</SelectItem>
                                       </SelectContent>
                                     </Select>
+                                    <div className="grid gap-2">
+                                      <Label htmlFor="client_ids">Projects</Label>
+                                      <Popover>
+                                        <PopoverTrigger asChild>
+                                          <Button
+                                            variant="outline"
+                                            role="combobox"
+                                            className="w-full justify-between"
+                                          >
+                                            {selectedEditClients.length > 0
+                                              ? selectedEditClients.map(c => c.name).join(", ")
+                                              : isClientLoading
+                                                ? "Loading..."
+                                                : "Pilih Project"}
+                                            <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                          </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-full max-h-60 overflow-auto p-2">
+                                          {clients.map((client) => (
+                                            <div
+                                              key={client.id}
+                                              className="flex items-center space-x-2 p-2 hover:bg-muted rounded"
+                                              onClick={() => {
+                                                const isSelected = currentUser.client_ids.includes(client.id)
+                                                setCurrentUser({
+                                                  ...currentUser,
+                                                  client_ids: isSelected
+                                                    ? currentUser.client_ids.filter(id => id !== client.id)
+                                                    : [...currentUser.client_ids, client.id],
+                                                })
+                                              }}
+                                            >
+                                              <Checkbox
+                                                checked={currentUser.client_ids.includes(client.id)}
+                                                onCheckedChange={() => { }}
+                                              />
+                                              <span>{client.name}</span>
+                                            </div>
+                                          ))}
+                                        </PopoverContent>
+                                      </Popover>
+                                    </div>
                                   </div>
                                 </div>
                               )}

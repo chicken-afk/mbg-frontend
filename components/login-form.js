@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -16,6 +16,19 @@ export default function LoginForm() {
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
+
+  // Check if forceLogout is present in the URL
+  useEffect(() => {
+    const forceLogoutParam = searchParams.get("forceLogout");
+    if (forceLogoutParam === "true") {
+      setError("Sesi Habis. Anda telah keluar dari sistem. Silakan login kembali.");
+      localStorage.removeItem("token");
+      localStorage.removeItem("isAuthenticated");
+      localStorage.removeItem("userRole");
+      localStorage.removeItem("activeProjet");
+    }
+  }, [])
 
   const handleSubmit = async (e) => {
     setLoading(true)
