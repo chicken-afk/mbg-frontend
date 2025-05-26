@@ -152,7 +152,42 @@ export default function Sidebar({ className, sidebarOpen, onClose = () => { }, o
             </Link>
           ))}
         </nav>
-
+        {
+          userRole !== 3 && userRole !== "3" && (
+            <>
+              <h2 className="font-semibold mt-2 text-base ml-1">Project List</h2>
+              <div className="border-b"></div>
+              {isLoadingNavigation ? (
+                <div className="flex items-center justify-center h-64">
+                  <p className="text-gray-500">Loading projects...</p>
+                </div>
+              ) : (
+                projectList && projectList.length > 0 && (
+                  <div className="px-4 py-2">
+                    <ul className="space-y-2">
+                      {projectList.map((project) => (
+                        <div
+                          onClick={() => handleProjectClick(project)}
+                          className={"block text-xs text-muted-foreground text-center p-2 rounded-lg hover:text-primary hover:bg-blue-300 hover:cursor-pointer" + (project.id === activeProject.id ? " bg-blue-500 text-white font-semibold shadow-sm" : "")}
+                        >
+                          {project.projectName}
+                        </div>
+                      ))}
+                    </ul>
+                  </div>
+                )
+              )
+              }
+              {
+                !isLoadingNavigation && projectList && projectList.length === 0 && (
+                  <div className="flex items-center justify-center h-64">
+                    <p className="text-gray-500">No projects found.</p>
+                  </div>
+                )
+              }
+            </>
+          )
+        }
       </div>
     );
   }
