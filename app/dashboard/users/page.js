@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/popover"
 import { Check, ChevronDown } from "lucide-react"
 import { useProject } from "@/contexts/ProjectContext"
+import { useMobile } from "@/hooks/use-mobile"
 
 export default function UsersPage() {
   const [users, setUsers] = useState([])
@@ -40,6 +41,8 @@ export default function UsersPage() {
   const [currentUser, setCurrentUser] = useState(null)
   const [userRole, setUserRole] = useState(null)
   const { activeProject } = useProject()
+  const isMobileDevice = useMobile()
+
   const [pagination, setPagination] = useState({
     currentPage: 1,
     totalPages: 0,
@@ -55,6 +58,13 @@ export default function UsersPage() {
     client_id: "",
     client_ids: [],
   })
+
+  const formatClientName = (name) => {
+    //maksimal 40 characters if more then add ....
+    const maxLength = isMobileDevice ? 25 : 50
+    const truncatedName = name.length > maxLength ? `${name.substring(0, maxLength - 5)}......` : name
+    return truncatedName
+  }
 
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -439,7 +449,7 @@ export default function UsersPage() {
                       className="w-full justify-between"
                     >
                       {selectedClients.length > 0
-                        ? selectedClients.map(c => c.name).join(", ")
+                        ? formatClientName(selectedClients.map(c => c.name).join(", "))
                         : isClientLoading
                           ? "Loading..."
                           : "Pilih Project"}
@@ -664,7 +674,7 @@ export default function UsersPage() {
                                             className="w-full justify-between"
                                           >
                                             {selectedEditClients.length > 0
-                                              ? selectedEditClients.map(c => c.name).join(", ")
+                                              ? formatClientName(selectedEditClients.map(c => c.name).join(", "))
                                               : isClientLoading
                                                 ? "Loading..."
                                                 : "Pilih Project"}

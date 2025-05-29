@@ -114,15 +114,25 @@ export default function TransactionsPage() {
     return () => clearTimeout(handler)
   }, [searchTerm])
 
-  // Fetching logic (uses debouncedSearchTerm)
-  useEffect(() => {
-    // setLoading(true)
-    if (activeProject.id !== undefined) {
+  const [shouldFetch, setShouldFetch] = useState(false);
 
-      fetchData()
+
+  // When filters change: reset pagination and set shouldFetch
+  useEffect(() => {
+    setPagination(prev => ({
+      ...prev,
+      currentPage: 1,
+    }));
+    setShouldFetch(true); // trigger fetchData even if currentPage is still 1
+  }, [filterCategory, debouncedSearchTerm, filterDate, from, activeProject]);
+
+  // Fetch data when currentPage or shouldFetch changes
+  useEffect(() => {
+    if (activeProject.id !== undefined) {
+      fetchData();
+      setShouldFetch(false); // reset the flag
     }
-    // setLoading(false)
-  }, [filterCategory, debouncedSearchTerm, filterDate, pagination.currentPage, from, activeProject])
+  }, [pagination.currentPage, shouldFetch, activeProject]);
 
   useEffect(() => {
     const userData = localStorage.getItem("user")
@@ -181,7 +191,9 @@ export default function TransactionsPage() {
     const startDate = exportFilter.startDate || "";
     const endDate = exportFilter.endDate || "";
     const type = exportFilter.type || "";
-    const filterUrl = `start_date=${startDate}&end_date=${endDate}&type=${type}`;
+    const warehouseId = activeProject.id || "";
+    console.log("Exporting PDF with filters:", { startDate, endDate, type, warehouseId });
+    const filterUrl = `start_date=${startDate}&end_date=${endDate}&type=${type}&warehouse_id=${warehouseId}`;
 
     try {
       const response = await axios.get(`${apiUrl}/api/transactions-export-pdf?${filterUrl}`, {
@@ -400,12 +412,12 @@ export default function TransactionsPage() {
                           </TableCell>
                           <TableCell>{transaction.description}</TableCell>
                           <TableCell>
-                            <Badge variant={transaction.type === "pemasukan" ? "outline" : "secondary"}>
+                            <Badge className={transaction.type === "pemasukan" ? "bg-green-400" : "bg-red-400"}>
                               {transaction.type === "pemasukan" ? "Pemasukan" : "Pengeluaran"}
                             </Badge>
                           </TableCell>
                           <TableCell
-                            className={`text-right font-medium ${transaction.amount < 0 ? "text-red-500" : "text-green-500"}`}
+                            className={`text-right font-medium ${transaction.type === "pengeluaran" ? "text-red-500" : "text-green-500"}`}
                           >
                             {new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR" }).format(
                               transaction.amount,
